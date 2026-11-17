@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#000000">
+<title>Yellow Candle Journal</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 40'%3E%3Crect width='22' height='40' fill='black'/%3E%3Cline x1='11' y1='0' x2='11' y2='40' stroke='%23FFD400' stroke-width='3'/%3E%3Crect x='2' y='9' width='18' height='22' fill='%23FFD400'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one column, summary first, then the curve, the entry form, pattern breakdowns, and the log.
+   Rule of the brand: black ground, yellow = bullish / winning, white = bearish / losing. */
+:root {
+  --bg: #000000;
+  --panel: #0c0c0c;
+  --panel-2: #141414;
+  --line: #262626;
+  --line-2: #3a3a3a;
+  --fg: #f4f4f2;
+  --muted: #8d8d88;
+  --yellow: #FFD400;
+  --white: #FFFFFF;
+  --on-yellow: #000000;
+  --font-display: "Archivo Black", "Arial Black", Impact, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  padding-inline: 0;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+h1, h2, h3 { margin: 0; font-weight: 400; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand svg { flex: none; }
+.brand-name { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.04em; color: var(--yellow); line-height: 1.1; }
+.brand-sub { color: var(--muted); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; margin-top: 2px; }
+.top-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+.btn {
+  border: 1px solid var(--line-2); background: transparent; color: var(--fg);
+  padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 13px;
+}
+.btn:hover { border-color: var(--fg); }
+.btn.primary { background: var(--yellow); border-color: var(--yellow); color: var(--on-yellow); }
+.btn.primary:hover { background: #ffe14d; border-color: #ffe14d; }
+.btn.small { padding: 5px 11px; font-size: 12px; }
+.btn.danger-armed { background: var(--white); color: #000; border-color: var(--white); }
+.btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+.banner { border: 1px solid var(--line-2); background: var(--panel); padding: 12px 16px; border-radius: 10px; color: var(--muted); }
+.banner[hidden] { display: none; }
+
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.stat { background: var(--panel); padding: 18px 18px 16px; min-width: 0; }
+.stat .label { color: var(--muted); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+.stat .value { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin-top: 8px; overflow-wrap: anywhere; }
+.stat .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.stat.lead .value { font-size: 40px; }
+.pos { color: var(--yellow); }
+.neg { color: var(--white); }
+.zero { color: var(--muted); }
+
+/* panels */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.panel-head h2 { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; }
+.panel-head .sub { color: var(--muted); font-size: 12px; }
+svg.curve { width: 100%; height: auto; display: block; }
+.curve .grid { stroke: var(--line); stroke-width: 1; }
+.curve .zero-line { stroke: var(--line-2); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.curve text { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+.curve .line { fill: none; stroke: var(--yellow); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.curve .end-label { fill: var(--fg); font-weight: 700; font-size: 12px; }
+.empty { color: var(--muted); padding: 28px 8px; text-align: center; }
+
+/* form */
+form { display: flex; flex-direction: column; gap: 22px; }
+.group-title { color: var(--muted); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label, .field > .lab { font-size: 12px; color: var(--muted); font-weight: 500; }
+input, select, textarea {
+  font: inherit; color: var(--fg); background: var(--panel-2); border: 1px solid var(--line-2);
+  border-radius: 8px; padding: 9px 11px; width: 100%; min-width: 0;
+}
+input::placeholder, textarea::placeholder { color: #5e5e5a; }
+textarea { min-height: 76px; resize: vertical; }
+.span-2 { grid-column: span 2; }
+.wide { grid-column: 1 / -1; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button {
+  border: 1px solid var(--line-2); background: var(--panel-2); color: var(--fg);
+  padding: 7px 12px; border-radius: 8px; font-size: 13px;
+}
+.seg button:hover { border-color: var(--muted); }
+.seg button[aria-checked="true"] { background: var(--yellow); color: var(--on-yellow); border-color: var(--yellow); font-weight: 600; }
+.seg.bear button[aria-checked="true"][data-v="Bearish"], .seg.bear button[aria-checked="true"][data-v="Short"] { background: var(--white); border-color: var(--white); }
+.r-preview { font-family: var(--font-display); font-size: 22px; min-height: 34px; display: flex; align-items: center; }
+.form-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.form-error { color: var(--white); font-size: 13px; }
+
+/* breakdown */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.bcard { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--panel-2); min-width: 0; }
+.bcard h3 { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+.brow { display: grid; grid-template-columns: minmax(70px, 1.1fr) 2fr auto; gap: 10px; align-items: center; padding: 5px 0; }
+.brow .nm { overflow-wrap: anywhere; }
+.brow .meta { color: var(--muted); font-size: 12px; text-align: right; white-space: nowrap; }
+.bar { height: 8px; background: var(--line); border-radius: 4px; position: relative; overflow: hidden; }
+.bar > i { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.bar > i.p { background: var(--yellow); left: 50%; }
+.bar > i.n { background: var(--white); right: 50%; }
+.bar::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--line-2); }
+.note { color: var(--muted); font-size: 12px; margin-top: 12px; }
+
+/* log */
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; min-width: 860px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; padding: 11px 12px; border-bottom: 1px solid var(--line); background: var(--panel); white-space: nowrap; }
+td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.pill.short { background: var(--white); color: #000; }
+.pill.long { background: var(--yellow); color: #000; }
+.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 7px; font-size: 12px; color: var(--fg); white-space: nowrap; }
+.chip.dim { color: var(--muted); }
+.act { display: flex; gap: 6px; white-space: nowrap; }
+.sub-line { color: var(--muted); font-size: 12px; margin-top: 2px; max-width: 280px; overflow-wrap: anywhere; }
+.foot { color: var(--muted); font-size: 12px; text-align: center; }
+
+#toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--yellow); color: #000; font-weight: 600; padding: 10px 18px; border-radius: 999px;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+#toast.show { opacity: 1; }
+
+@media (max-width: 560px) {
+  .span-2 { grid-column: auto; }
+  .stat.lead .value { font-size: 34px; }
+  .stat .value { font-size: 26px; }
+  .panel { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="22" height="40" viewBox="0 0 22 40" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="40" stroke="#FFD400" stroke-width="3"/><rect x="2" y="9" width="18" height="22" fill="#FFD400"/></svg>
+      <div>
+        <div class="brand-name">THE YELLOW CANDLE</div>
+        <div class="brand-sub">Trade journal</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="export" type="button">Export CSV</button>
+      <button class="btn" id="backup" type="button">Backup</button>
+      <button class="btn" id="import" type="button">Restore</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+      <button class="btn primary" id="jump" type="button">Log a trade</button>
+    </div>
+  </header>
+
+  <div class="banner" id="status" role="status">Your trades are saved in this browser, on this device only. Press Backup now and then so nothing is lost.</div>
+
+  <section class="stats" id="stats" aria-label="Summary"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Equity curve</h2>
+      <span class="sub" id="curve-sub">Cumulative R, trade by trade</span>
+    </div>
+    <div id="curve-wrap"></div>
+  </section>
+
+  <section class="panel" id="form-panel">
+    <div class="panel-head">
+      <h2 id="form-title">Log a trade</h2>
+      <span class="sub">Record the decision, not just the result</span>
+    </div>
+    <form id="trade-form" autocomplete="off" novalidate>
+      <div>
+        <div class="group-title">The trade</div>
+        <div class="grid">
+          <div class="field"><label for="f-date">Date</label><input id="f-date" type="date"></div>
+          <div class="field"><label for="f-pair">Pair</label><input id="f-pair" list="pairs" value="XAUUSD"><datalist id="pairs"><option value="XAUUSD"><option value="XAGUSD"><option value="EURUSD"><option value="GBPUSD"><option value="NAS100"></datalist></div>
+          <div class="field"><div class="lab">Direction</div><div class="seg bear" id="seg-dir" data-name="dir" role="radiogroup" aria-label="Direction"></div></div>
+          <div class="field"><div class="lab">Executed on</div><div class="seg" id="seg-tf" data-name="tf" role="radiogroup" aria-label="Execution timeframe"></div></div>
+          <div class="field"><label for="f-entry">Entry</label><input id="f-entry" type="number" step="any" inputmode="decimal" placeholder="4054.925"></div>
+          <div class="field"><label for="f-stop">Stop</label><input id="f-stop" type="number" step="any" inputmode="decimal" placeholder="4062.071"></div>
+          <div class="field"><label for="f-exit">Exit</label><input id="f-exit" type="number" step="any" inputmode="decimal" placeholder="4013.956"></div>
+          <div class="field"><label for="f-r">R (only to override)</label><input id="f-r" type="number" step="any" inputmode="decimal" placeholder="auto"></div>
+          <div class="field"><div class="lab">Result</div><div class="r-preview num" id="r-preview">-</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="group-title">Why you took it</div>
+        <div class="grid">
+          <div class="field"><div class="lab">1h bias</div><div class="seg bear" id="seg-htf" data-name="htf" role="radiogroup" aria-label="1h bias"></div></div>
+          <div class="field span-2"><div class="lab">HTF POI</div><div class="seg" id="seg-poi" data-name="poi" role="radiogroup" aria-label="HTF POI"></div></div>
+          <div class="field"><div class="lab">Liquidity sweep</div><div class="seg" id="seg-sweep" data-name="sweep" role="radiogroup" aria-label="Liquidity sweep"></div></div>
+          <div class="field"><div class="lab">Trigger</div><div class="seg" id="seg-trigger" data-name="trigger" role="radiogroup" aria-label="Trigger"></div></div>
+          <div class="field"><div class="lab">Displacement</div><div class="seg" id="seg-disp" data-name="disp" role="radiogroup" aria-label="Displacement"></div></div>
+          <div class="field"><div class="lab">Fresh zone</div><div class="seg" id="seg-fresh" data-name="fresh" role="radiogroup" aria-label="Fresh zone"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="group-title">Review</div>
+        <div class="grid">
+          <div class="field"><div class="lab">Followed your rules?</div><div class="seg" id="seg-rules" data-name="rules" role="radiogroup" aria-label="Followed rules"></div></div>
+          <div class="field span-2"><div class="lab">Mindset</div><div class="seg" id="seg-mood" data-name="mood" role="radiogroup" aria-label="Mindset"></div></div>
+          <div class="field wide"><label for="f-link">Chart snapshot link</label><input id="f-link" type="url" placeholder="https://www.tradingview.com/x/..."></div>
+          <div class="field wide"><label for="f-notes">Notes: what would you change?</label><textarea id="f-notes" placeholder="What the zone looked like, what price did, what you would do differently."></textarea></div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" id="save" type="submit">Save trade</button>
+        <button class="btn" id="cancel" type="button" hidden>Cancel edit</button>
+        <span class="form-error" id="form-error" role="alert"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>What the data says</h2>
+      <span class="sub">Average R by tag. Wait for 20+ trades in a group before trusting it.</span>
+    </div>
+    <div id="breakdown"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Trade log</h2>
+      <span class="sub" id="log-sub"></span>
+    </div>
+    <div id="log"></div>
+  </section>
+
+  <p class="foot">Past results do not predict future results. CFDs are high risk and most retail accounts lose money.</p>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var OPTIONS = {
+    dir: ["Long", "Short"],
+    tf: ["1m", "3m", "5m", "15m"],
+    htf: ["Bullish", "Bearish"],
+    poi: ["1H Supply", "1H Demand", "1H FVG", "Key level", "Other"],
+    sweep: ["Yes", "No"],
+    trigger: ["CHOCH", "BOS"],
+    disp: ["Strong", "Weak"],
+    fresh: ["Yes", "No"],
+    rules: ["Yes", "No"],
+    mood: ["Calm", "Confident", "Rushed", "Bored", "FOMO", "Revenge"]
+  };
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  var trades = [];
+  var loaded = false;
+  var coll = null;
+  var editingId = null;
+  var armedDelete = null;
+  var armTimer = null;
+  var form = {};
+
+  function $(id) { return document.getElementById(id); }
+  function h(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function s(tag, attrs, text) {
+    var e = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+  function fmtR(v) {
+    if (v === null || v === undefined || isNaN(v)) return "-";
+    var sign = v > 0 ? "+" : v < 0 ? "−" : "";
+    return sign + Math.abs(v).toFixed(2) + "R";
+  }
+  function rClass(v) { return v > 0 ? "pos" : v < 0 ? "neg" : "zero"; }
+  function fmtDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    if (!m) return iso || "";
+    return parseInt(m[3], 10) + " " + MON[parseInt(m[2], 10) - 1] + " " + m[1].slice(2);
+  }
+  function fmtPx(v) {
+    var n = Number(v);
+    if (v === null || v === undefined || v === "" || isNaN(n)) return "-";
+    return n.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  }
+  function todayIso() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 2200);
+  }
+
+  /* ---------- stats ---------- */
+  function sorted() {
+    return trades.slice().sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return (a.created || 0) - (b.created || 0);
+    });
+  }
+  function computeStats(list) {
+    var n = list.length, wins = 0, gw = 0, gl = 0, total = 0;
+    list.forEach(function (t) {
+      total += t.r;
+      if (t.r > 0) { wins++; gw += t.r; }
+      if (t.r < 0) gl += -t.r;
+    });
+    var cum = 0, peak = 0, dd = 0;
+    sorted().forEach(function (t) {
+      cum += t.r;
+      if (cum > peak) peak = cum;
+      if (peak - cum > dd) dd = peak - cum;
+    });
+    var ruleAnswers = list.filter(function (t) { return t.rules === "Yes" || t.rules === "No"; });
+    var ruleYes = ruleAnswers.filter(function (t) { return t.rules === "Yes"; }).length;
+    return {
+      n: n, total: total,
+      winRate: n ? wins / n : null,
+      avg: n ? total / n : null,
+      pf: gl > 0 ? gw / gl : (gw > 0 ? Infinity : null),
+      dd: n ? dd : null,
+      rulesPct: ruleAnswers.length ? ruleYes / ruleAnswers.length : null,
+      rulesN: ruleAnswers.length
+    };
+  }
+  function renderStats() {
+    var st = computeStats(trades);
+    var box = $("stats");
+    clear(box);
+    function tile(label, valueText, cls, hint, lead) {
+      var d = h("div", "stat" + (lead ? " lead" : ""));
+      d.appendChild(h("div", "label", label));
+      d.appendChild(h("div", "value num " + (cls || ""), valueText));
+      if (hint) d.appendChild(h("div", "hint", hint));
+      box.appendChild(d);
+    }
+    var none = st.n === 0;
+    tile("Total R", none ? "-" : fmtR(st.total), none ? "zero" : rClass(st.total), st.n + (st.n === 1 ? " trade" : " trades"), true);
+    tile("Win rate", none ? "-" : Math.round(st.winRate * 100) + "%", "", none ? "" : "Winners over all trades");
+    tile("Average R", none ? "-" : fmtR(st.avg), none ? "zero" : rClass(st.avg), "Per trade");
+    tile("Profit factor", none || st.pf === null ? "-" : (st.pf === Infinity ? "No losses" : st.pf.toFixed(2)), "", "Won R over lost R");
+    tile("Max drawdown", none ? "-" : (st.dd === 0 ? "0.00R" : "−" + st.dd.toFixed(2) + "R"), "", "Peak to trough");
+    tile("Rules followed", st.rulesPct === null ? "-" : Math.round(st.rulesPct * 100) + "%", "", st.rulesN ? "Of " + st.rulesN + " reviewed" : "Answer it per trade");
+  }
+
+  /* ---------- equity curve ---------- */
+  function niceStep(x) {
+    if (!(x > 0)) return 1;
+    var p = Math.pow(10, Math.floor(Math.log(x) / Math.LN10));
+    var f = x / p;
+    var n = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+    return n * p;
+  }
+  function renderCurve() {
+    var wrap = $("curve-wrap");
+    clear(wrap);
+    var list = sorted();
+    if (!list.length) {
+      wrap.appendChild(h("div", "empty", "No trades yet. Your equity curve draws itself as you log trades."));
+      return;
+    }
+    var W = 800, H = 280, L = 54, R = 56, T = 18, B = 34;
+    var cum = [0];
+    list.forEach(function (t) { cum.push(cum[cum.length - 1] + t.r); });
+    var mn = Math.min.apply(null, cum.concat([0])), mx = Math.max.apply(null, cum.concat([0]));
+    if (mx === mn) mx = mn + 1;
+    var step = niceStep((mx - mn) / 4);
+    var lo = Math.floor(mn / step) * step, hi = Math.ceil(mx / step) * step;
+    if (hi === lo) hi = lo + step;
+    function y(v) { return T + (hi - v) / (hi - lo) * (H - T - B); }
+    function x(i) { return L + (cum.length > 1 ? i / (cum.length - 1) : 0.5) * (W - L - R); }
+    var svg = s("svg", { "class": "curve", viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Cumulative R after each trade" });
+    var defs = s("defs", {});
+    var grad = s("linearGradient", { id: "fillgrad", x1: "0", y1: "0", x2: "0", y2: "1" });
+    grad.appendChild(s("stop", { offset: "0", style: "stop-color:#FFD400;stop-opacity:0.28" }));
+    grad.appendChild(s("stop", { offset: "1", style: "stop-color:#FFD400;stop-opacity:0" }));
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+    for (var v = lo; v <= hi + step / 1000; v += step) {
+      var yy = y(v);
+      svg.appendChild(s("line", { "class": v === 0 ? "zero-line" : "grid", x1: L, x2: W - R, y1: yy, y2: yy }));
+      svg.appendChild(s("text", { x: L - 8, y: yy + 4, "text-anchor": "end" }, (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(Math.round(v * 100) / 100) + "R"));
+    }
+    var every = Math.max(1, Math.ceil((cum.length - 1) / 8));
+    for (var i = 0; i < cum.length; i += every) {
+      svg.appendChild(s("text", { x: x(i), y: H - 10, "text-anchor": "middle" }, i === 0 ? "Start" : "#" + i));
+    }
+    var pts = cum.map(function (c, i) { return x(i) + "," + y(c); });
+    if (cum.length > 1) {
+      var area = "M" + x(0) + "," + y(0) + " L" + pts.join(" L") + " L" + x(cum.length - 1) + "," + y(0) + " Z";
+      svg.appendChild(s("path", { d: area, fill: "url(#fillgrad)" }));
+      svg.appendChild(s("polyline", { "class": "line", points: pts.join(" ") }));
+    }
+    list.forEach(function (t, k) {
+      var i = k + 1;
+      svg.appendChild(s("circle", { cx: x(i), cy: y(cum[i]), r: i === cum.length - 1 ? 5.5 : 3.5, fill: t.r > 0 ? "#FFD400" : t.r < 0 ? "#FFFFFF" : "#8d8d88" }));
+    });
+    var last = cum[cum.length - 1];
+    svg.appendChild(s("text", { "class": "end-label", x: x(cum.length - 1) + 10, y: y(last) + 4 }, fmtR(last)));
+    wrap.appendChild(svg);
+    $("curve-sub").textContent = "Cumulative R after each of " + list.length + (list.length === 1 ? " trade" : " trades");
+  }
+
+  /* ---------- breakdown ---------- */
+  var GROUPS = [
+    ["1h bias", "htf"], ["HTF POI", "poi"], ["Liquidity sweep", "sweep"], ["Trigger", "trigger"],
+    ["Displacement", "disp"], ["Fresh zone", "fresh"], ["Followed rules", "rules"],
+    ["Direction", "dir"], ["Execution timeframe", "tf"], ["Mindset", "mood"], ["Pair", "pair"]
+  ];
+  function renderBreakdown() {
+    var box = $("breakdown");
+    clear(box);
+    if (!trades.length) {
+      box.appendChild(h("div", "empty", "Tag your trades and the patterns appear here: which setups pay, which ones cost you."));
+      return;
+    }
+    var cards = h("div", "cards");
+    var made = 0;
+    GROUPS.forEach(function (g) {
+      var key = g[1], map = {}, order = [];
+      trades.forEach(function (t) {
+        var v = t[key];
+        if (v === undefined || v === null || v === "") return;
+        if (!map[v]) { map[v] = { n: 0, w: 0, sum: 0 }; order.push(v); }
+        map[v].n++; map[v].sum += t.r; if (t.r > 0) map[v].w++;
+      });
+      if (!order.length) return;
+      var known = OPTIONS[key] || [];
+      order.sort(function (a, b) {
+        var ia = known.indexOf(a), ib = known.indexOf(b);
+        if (ia === -1) ia = 99; if (ib === -1) ib = 99;
+        return ia - ib || (a < b ? -1 : 1);
+      });
+      var maxAbs = 0.01;
+      order.forEach(function (v) { maxAbs = Math.max(maxAbs, Math.abs(map[v].sum / map[v].n)); });
+      var card = h("div", "bcard");
+      card.appendChild(h("h3", "", g[0]));
+      order.forEach(function (v) {
+        var m = map[v], avg = m.sum / m.n;
+        var row = h("div", "brow");
+        row.appendChild(h("div", "nm", v));
+        var bar = h("div", "bar");
+        var fill = h("i", avg >= 0 ? "p" : "n");
+        fill.style.width = Math.min(50, Math.abs(avg) / maxAbs * 50) + "%";
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        row.appendChild(h("div", "meta num", fmtR(avg) + "  |  " + Math.round(m.w / m.n * 100) + "%  |  n=" + m.n));
+        card.appendChild(row);
+      });
+      cards.appendChild(card);
+      made++;
+    });
+    if (!made) {
+      box.appendChild(h("div", "empty", "None of your trades carry tags yet. Fill in the \"Why you took it\" section when you log."));
+    } else {
+      box.appendChild(cards);
+      box.appendChild(h("div", "note", "Each row: average R  |  win rate  |  number of trades. Yellow bars made money on average, white bars lost."));
+    }
+  }
+
+  /* ---------- log ---------- */
+  function renderLog() {
+    var box = $("log");
+    clear(box);
+    $("log-sub").textContent = trades.length ? trades.length + (trades.length === 1 ? " trade" : " trades") + ", newest first" : "";
+    if (!trades.length) {
+      box.appendChild(h("div", "empty", loaded ? "No trades yet. Log your first one above." : "Loading..."));
+      return;
+    }
+    var list = sorted().reverse();
+    var wrap = h("div", "table-scroll");
+    var table = h("table");
+    var thead = h("thead");
+    var hr = h("tr");
+    ["Date", "Pair", "Side", "TF", "Entry / Exit", "Result", "Setup", "Rules", ""].forEach(function (c) { hr.appendChild(h("th", "", c)); });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    var tb = h("tbody");
+    list.forEach(function (t) {
+      var tr = h("tr");
+      tr.appendChild(h("td", "num", fmtDate(t.date)));
+      tr.appendChild(h("td", "", t.pair || "-"));
+      var tdSide = h("td");
+      tdSide.appendChild(h("span", "pill " + (t.dir === "Short" ? "short" : "long"), t.dir || "-"));
+      tr.appendChild(tdSide);
+      tr.appendChild(h("td", "", t.tf || "-"));
+      var tdPx = h("td", "num");
+      var hasPx = t.entry !== undefined && t.entry !== null && t.entry !== "";
+      tdPx.appendChild(document.createTextNode(hasPx ? fmtPx(t.entry) : "-"));
+      if (hasPx && t.exit !== undefined && t.exit !== null && t.exit !== "") tdPx.appendChild(h("div", "sub-line", "to " + fmtPx(t.exit)));
+      tr.appendChild(tdPx);
+      tr.appendChild(h("td", "r num " + rClass(t.r), fmtR(t.r)));
+      var tdTags = h("td");
+      var chips = h("div", "chips");
+      [["htf", ""], ["poi", ""], ["trigger", ""]].forEach(function (k) { if (t[k[0]]) chips.appendChild(h("span", "chip", t[k[0]])); });
+      if (t.sweep === "Yes") chips.appendChild(h("span", "chip", "Sweep"));
+      if (t.disp === "Strong") chips.appendChild(h("span", "chip", "Strong disp."));
+      if (t.fresh === "Yes") chips.appendChild(h("span", "chip", "Fresh"));
+      if (t.mood) chips.appendChild(h("span", "chip dim", t.mood));
+      tdTags.appendChild(chips);
+      if (t.notes) tdTags.appendChild(h("div", "sub-line", t.notes));
+      if (t.link) {
+        var a = h("a", "sub-line", "Chart snapshot");
+        a.href = t.link; a.target = "_blank"; a.rel = "noopener noreferrer"; a.style.color = "var(--yellow)"; a.style.display = "block";
+        tdTags.appendChild(a);
+      }
+      tr.appendChild(tdTags);
+      tr.appendChild(h("td", t.rules === "Yes" ? "pos" : t.rules === "No" ? "neg" : "zero", t.rules === "Yes" ? "Yes" : t.rules === "No" ? "No" : "-"));
+      var tdAct = h("td");
+      var act = h("div", "act");
+      var be = h("button", "btn small", "Edit"); be.type = "button"; be.setAttribute("data-edit", t.id);
+      var bd = h("button", "btn small" + (armedDelete === t.id ? " danger-armed" : ""), armedDelete === t.id ? "Confirm delete" : "Delete");
+      bd.type = "button"; bd.setAttribute("data-del", t.id);
+      act.appendChild(be); act.appendChild(bd);
+      tdAct.appendChild(act);
+      tr.appendChild(tdAct);
+      tb.appendChild(tr);
+    });
+    table.appendChild(tb);
+    wrap.appendChild(table);
+    box.appendChild(wrap);
+  }
+
+  function renderAll() {
+    renderStats();
+    renderCurve();
+    renderBreakdown();
+    renderLog();
+  }
+
+  /* ---------- form ---------- */
+  function buildSegs() {
+    Object.keys(OPTIONS).forEach(function (name) {
+      var el = $("seg-" + name);
+      if (!el) return;
+      OPTIONS[name].forEach(function (opt) {
+        var b = h("button", "", opt);
+        b.type = "button";
+        b.setAttribute("role", "radio");
+        b.setAttribute("aria-checked", "false");
+        b.setAttribute("data-v", opt);
+        b.addEventListener("click", function () {
+          form[name] = form[name] === opt ? "" : opt;
+          syncSegs();
+          updatePreview();
+        });
+        el.appendChild(b);
+      });
+    });
+  }
+  function syncSegs() {
+    Object.keys(OPTIONS).forEach(function (name) {
+      var el = $("seg-" + name);
+      if (!el) return;
+      Array.prototype.forEach.call(el.children, function (b) {
+        b.setAttribute("aria-checked", form[name] === b.getAttribute("data-v") ? "true" : "false");
+      });
+    });
+  }
+  function num(id) {
+    var v = $(id).value;
+    if (v === "" || v === null) return null;
+    var n = Number(v);
+    return isNaN(n) ? null : n;
+  }
+  function computeR() {
+    var ov = num("f-r");
+    if (ov !== null) return ov;
+    var e = num("f-entry"), sp = num("f-stop"), x = num("f-exit");
+    if (e === null || sp === null || x === null || !form.dir || e === sp) return null;
+    var risk = Math.abs(e - sp);
+    var move = form.dir === "Short" ? e - x : x - e;
+    return move / risk;
+  }
+  function updatePreview() {
+    var r = computeR();
+    var p = $("r-preview");
+    p.textContent = r === null ? "-" : fmtR(Math.round(r * 100) / 100);
+    p.className = "r-preview num " + (r === null ? "zero" : rClass(r));
+  }
+  function resetForm() {
+    editingId = null;
+    form = { dir: "Short", tf: "5m" };
+    $("f-date").value = todayIso();
+    $("f-pair").value = "XAUUSD";
+    ["f-entry", "f-stop", "f-exit", "f-r", "f-link", "f-notes"].forEach(function (id) { $(id).value = ""; });
+    $("form-title").textContent = "Log a trade";
+    $("save").textContent = "Save trade";
+    $("cancel").hidden = true;
+    $("form-error").textContent = "";
+    syncSegs();
+    updatePreview();
+  }
+  function startEdit(id) {
+    var t = trades.filter(function (x) { return x.id === id; })[0];
+    if (!t) return;
+    editingId = id;
+    form = {};
+    Object.keys(OPTIONS).forEach(function (k) { form[k] = t[k] || ""; });
+    $("f-date").value = t.date || todayIso();
+    $("f-pair").value = t.pair || "";
+    $("f-entry").value = t.entry === undefined || t.entry === null ? "" : t.entry;
+    $("f-stop").value = t.stop === undefined || t.stop === null ? "" : t.stop;
+    $("f-exit").value = t.exit === undefined || t.exit === null ? "" : t.exit;
+    $("f-r").value = (t.entry === undefined || t.entry === null || t.entry === "") ? t.r : "";
+    $("f-link").value = t.link || "";
+    $("f-notes").value = t.notes || "";
+    $("form-title").textContent = "Edit trade";
+    $("save").textContent = "Update trade";
+    $("cancel").hidden = false;
+    $("form-error").textContent = "";
+    syncSegs();
+    updatePreview();
+    $("form-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function onSubmit(ev) {
+    ev.preventDefault();
+    var err = $("form-error");
+    err.textContent = "";
+    var date = $("f-date").value;
+    if (!date) { err.textContent = "Pick the trade date."; return; }
+    if (!form.dir) { err.textContent = "Choose Long or Short."; return; }
+    var r = computeR();
+    if (r === null) { err.textContent = "Enter entry, stop and exit, or type the R result yourself."; return; }
+    var doc = {
+      date: date,
+      pair: $("f-pair").value.trim().toUpperCase() || "XAUUSD",
+      dir: form.dir,
+      tf: form.tf || "",
+      r: Math.round(r * 100) / 100
+    };
+    var e = num("f-entry"), sp = num("f-stop"), x = num("f-exit");
+    if (e !== null) doc.entry = e;
+    if (sp !== null) doc.stop = sp;
+    if (x !== null) doc.exit = x;
+    ["htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "mood"].forEach(function (k) { if (form[k]) doc[k] = form[k]; });
+    var link = $("f-link").value.trim();
+    if (link) doc.link = link;
+    var notes = $("f-notes").value.trim();
+    if (notes) doc.notes = notes;
+    var existing = editingId ? trades.filter(function (t) { return t.id === editingId; })[0] : null;
+    doc.created = existing && existing.created ? existing.created : Date.now();
+    var id = editingId || ("t" + Date.now() + Math.random().toString(36).slice(2, 6));
+    doc.id = id;
+    var wasEditing = !!editingId;
+    var at = -1;
+    trades.forEach(function (t, i) { if (t.id === id) at = i; });
+    if (at >= 0) trades[at] = doc; else trades.push(doc);
+    persist();
+    toast(wasEditing ? "Trade updated" : "Trade saved");
+    resetForm();
+    renderAll();
+  }
+  function onLogClick(ev) {
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+    var ed = t.getAttribute("data-edit");
+    var del = t.getAttribute("data-del");
+    if (ed) { startEdit(ed); return; }
+    if (del) {
+      if (armedDelete === del) {
+        clearTimeout(armTimer);
+        armedDelete = null;
+        trades = trades.filter(function (t) { return t.id !== del; });
+        persist();
+        if (editingId === del) resetForm();
+        toast("Trade deleted");
+        renderAll();
+      } else {
+        armedDelete = del;
+        clearTimeout(armTimer);
+        armTimer = setTimeout(function () { armedDelete = null; renderLog(); }, 4000);
+        renderLog();
+      }
+    }
+  }
+
+  /* ---------- export ---------- */
+  function csvCell(v) {
+    if (v === undefined || v === null) return "";
+    var str = String(v);
+    return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+  }
+  function buildCsv() {
+    var cols = ["date", "pair", "dir", "tf", "entry", "stop", "exit", "r", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "mood", "link", "notes"];
+    var lines = [cols.join(",")];
+    sorted().forEach(function (t) { lines.push(cols.map(function (c) { return csvCell(t[c]); }).join(",")); });
+    return lines.join("\n");
+  }
+
+  /* ---------- storage (this browser only) ---------- */
+  var KEY = "yellow-candle-journal-v1";
+  var storageOk = true;
+
+  function cleanList(arr) {
+    var out = [];
+    if (!Array.isArray(arr)) return out;
+    arr.forEach(function (t) {
+      if (!t || typeof t !== "object") return;
+      var r = Number(t.r);
+      if (isNaN(r) || !t.date) return;
+      var c = {};
+      for (var k in t) c[k] = t[k];
+      c.r = r;
+      c.id = String(t.id || ("t" + Date.now() + Math.random().toString(36).slice(2, 6)));
+      out.push(c);
+    });
+    return out;
+  }
+  function loadTrades() {
+    try {
+      var raw = window.localStorage.getItem(KEY);
+      if (!raw) return [];
+      return cleanList(JSON.parse(raw));
+    } catch (e) {
+      storageOk = false;
+      return [];
+    }
+  }
+  function showStatus(msg) {
+    var st = $("status");
+    st.textContent = msg;
+    st.hidden = false;
+  }
+  function persist() {
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify(trades));
+    } catch (e) {
+      storageOk = false;
+      showStatus("This browser is blocking saved data, so trades will be lost when you close the page. Press Backup after logging.");
+    }
+  }
+
+  /* ---------- files: CSV, backup, restore ---------- */
+  function saveFile(name, mime, text) {
+    var blob = new Blob([text], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function exportCsv() {
+    if (!trades.length) { toast("Nothing to export yet"); return; }
+    saveFile("yellow-candle-journal-" + todayIso() + ".csv", "text/csv", buildCsv());
+    toast("CSV saved");
+  }
+  function backupJson() {
+    if (!trades.length) { toast("Nothing to back up yet"); return; }
+    var body = JSON.stringify({ app: "yellow-candle-journal", version: 1, trades: sorted() }, null, 2);
+    saveFile("yellow-candle-backup-" + todayIso() + ".json", "application/json", body);
+    toast("Backup saved");
+  }
+  function restoreJson(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(String(reader.result));
+        var list = cleanList(Array.isArray(data) ? data : data.trades);
+        if (!list.length) { toast("No trades found in that file"); return; }
+        var byId = {};
+        trades.forEach(function (t) { byId[t.id] = t; });
+        list.forEach(function (t) { byId[t.id] = t; });
+        trades = Object.keys(byId).map(function (k) { return byId[k]; });
+        persist();
+        renderAll();
+        toast("Restored " + list.length + (list.length === 1 ? " trade" : " trades"));
+      } catch (e) {
+        toast("That file is not a journal backup");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---------- boot ---------- */
+  function boot() {
+    buildSegs();
+    resetForm();
+    trades = loadTrades();
+    loaded = true;
+    if (!storageOk) showStatus("This browser is blocking saved data, so trades will be lost when you close the page. Press Backup after logging.");
+    renderAll();
+    $("trade-form").addEventListener("submit", onSubmit);
+    $("cancel").addEventListener("click", resetForm);
+    $("log").addEventListener("click", onLogClick);
+    $("jump").addEventListener("click", function () { $("form-panel").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    ["f-entry", "f-stop", "f-exit", "f-r"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
+    $("export").addEventListener("click", exportCsv);
+    $("backup").addEventListener("click", backupJson);
+    $("import").addEventListener("click", function () { $("import-file").click(); });
+    $("import-file").addEventListener("change", function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) restoreJson(f);
+      e.target.value = "";
+    });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
