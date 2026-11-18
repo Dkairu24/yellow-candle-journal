@@ -376,7 +376,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
           <div class="field"><div class="lab">Followed your rules?</div><div class="seg" id="seg-rules" data-name="rules" role="radiogroup" aria-label="Followed rules"></div></div>
           <div class="field span-2"><div class="lab">Mindset</div><div class="seg" id="seg-mood" data-name="mood" role="radiogroup" aria-label="Mindset"></div></div>
           <div class="field wide"><label for="f-tags">Your own tags (separate with commas)</label><input id="f-tags" type="text" list="tag-list" maxlength="120" placeholder="news day, london open, A+ entry"><datalist id="tag-list"></datalist></div>
-          <div class="field wide"><label for="f-shot">Chart screenshot</label><input id="f-shot" type="file" accept="image/*"><div class="shot-hint">Or press Ctrl+V / Cmd+V anywhere on the page to paste one. It stays in this browser and is not part of the backup file.</div><div id="shot-prev" hidden></div></div>
+          <div class="field wide"><label for="f-shot">Chart screenshot</label><input id="f-shot" type="file" accept="image/*"><div class="shot-hint">Or press Ctrl+V / Cmd+V anywhere on the page to paste one. It is stored in this browser and included when you press Backup.</div><div id="shot-prev" hidden></div></div>
           <div class="field wide"><label for="f-link">Chart snapshot link</label><input id="f-link" type="url" placeholder="https://www.tradingview.com/x/..."></div>
           <div class="field wide"><label for="f-notes">Notes: what would you change?</label><textarea id="f-notes" placeholder="What the zone looked like, what price did, what you would do differently."></textarea></div>
         </div>
@@ -1414,7 +1414,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     modal.hidden = false;
     shotGet(id).then(function (b) {
       clear(box);
-      if (!b) { box.appendChild(h("p", "note", "This screenshot is not stored on this device. Screenshots stay in the browser where you attached them and are not part of the backup file.")); return; }
+      if (!b) { box.appendChild(h("p", "note", "This screenshot is not stored on this device. This backup or browser does not hold it. Backups made before screenshots were added do not include them.")); return; }
       var im = document.createElement("img");
       im.alt = "Trade screenshot"; im.src = URL.createObjectURL(b);
       box.appendChild(im);
@@ -2567,9 +2567,27 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   }
   function backupJson() {
     if (!trades.length) { toast("Nothing to back up yet"); return; }
-    var body = JSON.stringify({ app: "yellow-candle-journal", version: 1, trades: sorted() }, null, 2);
-    saveFile("yellow-candle-backup-" + todayIso() + ".json", "application/json", body);
-    toast("Backup saved");
+    var list = sorted();
+    var withShot = list.filter(function (t) { return t.shot; });
+    function toDataUrl(b) {
+      return new Promise(function (res) {
+        var fr = new FileReader();
+        fr.onload = function () { res(String(fr.result)); };
+        fr.onerror = function () { res(""); };
+        fr.readAsDataURL(b);
+      });
+    }
+    var shots = {};
+    Promise.all(withShot.map(function (t) {
+      return shotGet(t.id).then(function (b) { return b ? toDataUrl(b) : ""; }).catch(function () { return ""; })
+        .then(function (u) { if (u) shots[t.id] = u; });
+    })).then(function () {
+      var doc = { app: "yellow-candle-journal", version: 2, trades: list };
+      var n = Object.keys(shots).length;
+      if (n) doc.shots = shots;
+      saveFile("yellow-candle-backup-" + todayIso() + ".json", "application/json", JSON.stringify(doc, null, 2));
+      toast(n ? "Backup saved with " + n + (n === 1 ? " screenshot" : " screenshots") : "Backup saved");
+    });
   }
   function restoreJson(file) {
     var reader = new FileReader();
@@ -2584,7 +2602,13 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
         trades = Object.keys(byId).map(function (k) { return byId[k]; });
         persist();
         renderAll();
-        toast("Restored " + list.length + (list.length === 1 ? " trade" : " trades"));
+        var restored = 0;
+        var sh = data && !Array.isArray(data) && data.shots && typeof data.shots === "object" ? data.shots : {};
+        Promise.all(list.filter(function (t) { return t.shot && typeof sh[t.id] === "string" && sh[t.id].indexOf("data:image/") === 0; }).map(function (t) {
+          return fetch(sh[t.id]).then(function (r) { return r.blob(); }).then(function (b) { return shotPut(t.id, b); }).then(function () { restored++; }).catch(function () {});
+        })).then(function () {
+          toast("Restored " + list.length + (list.length === 1 ? " trade" : " trades") + (restored ? " and " + restored + (restored === 1 ? " screenshot" : " screenshots") : ""));
+        });
       } catch (e) {
         toast("That file is not a journal backup");
       }
