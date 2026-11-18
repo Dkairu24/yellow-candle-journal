@@ -274,6 +274,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     <div class="field"><label for="flt-pair">Pair</label><select id="flt-pair"><option value="">All pairs</option></select></div>
     <div class="field"><label for="flt-dir">Side</label><select id="flt-dir"><option value="">All</option><option value="Long">Long</option><option value="Short">Short</option></select></div>
     <div class="field"><label for="flt-tf">Timeframe</label><select id="flt-tf"><option value="">All timeframes</option></select></div>
+    <div class="field"><label for="flt-tag">Your tag</label><select id="flt-tag"><option value="">All tags</option></select></div>
     <div class="field"><label for="flt-grade">Setup score</label><select id="flt-grade"><option value="">All</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="none">No score</option></select></div>
     <div class="f-end"><span id="flt-summary" aria-live="polite"></span><button class="btn small" id="flt-clear" type="button" hidden>Clear filters</button></div>
   </section>
@@ -367,6 +368,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
         <div class="grid">
           <div class="field"><div class="lab">Followed your rules?</div><div class="seg" id="seg-rules" data-name="rules" role="radiogroup" aria-label="Followed rules"></div></div>
           <div class="field span-2"><div class="lab">Mindset</div><div class="seg" id="seg-mood" data-name="mood" role="radiogroup" aria-label="Mindset"></div></div>
+          <div class="field wide"><label for="f-tags">Your own tags (separate with commas)</label><input id="f-tags" type="text" list="tag-list" maxlength="120" placeholder="news day, london open, A+ entry"><datalist id="tag-list"></datalist></div>
           <div class="field wide"><label for="f-link">Chart snapshot link</label><input id="f-link" type="url" placeholder="https://www.tradingview.com/x/..."></div>
           <div class="field wide"><label for="f-notes">Notes: what would you change?</label><textarea id="f-notes" placeholder="What the zone looked like, what price did, what you would do differently."></textarea></div>
         </div>
@@ -678,7 +680,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   var GROUPS = [
     ["Setup score", "grade"], ["1h bias", "htf"], ["HTF POI", "poi"], ["Liquidity sweep", "sweep"], ["Trigger", "trigger"],
     ["Displacement", "disp"], ["Fresh zone", "fresh"], ["Followed rules", "rules"],
-    ["Weekday", "wday"], ["Direction", "dir"], ["Execution timeframe", "tf"], ["Mindset", "mood"], ["Pair", "pair"]
+    ["Weekday", "wday"], ["Direction", "dir"], ["Execution timeframe", "tf"], ["Mindset", "mood"], ["Your tags", "tags"], ["Pair", "pair"]
   ];
   function renderBreakdown() {
     var box = $("breakdown");
@@ -775,6 +777,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       if (t.disp === "Strong") chips.appendChild(h("span", "chip", "Strong disp."));
       if (t.fresh === "Yes") chips.appendChild(h("span", "chip", "Fresh"));
       if (t.mood) chips.appendChild(h("span", "chip dim", t.mood));
+      toArr(t.tags).forEach(function (x) { chips.appendChild(h("span", "chip dim", "#" + x)); });
       if (t.plan) chips.appendChild(h("span", "chip dim", "Plan " + fmtR(t.plan)));
       if (t.chkN) chips.appendChild(h("span", "chip", "Setup " + gradeOf(t) + "  " + t.chkS + "/" + t.chkN));
       if (t.imported && !t.htf && !t.poi && !toArr(t.trigger).length) chips.appendChild(h("span", "chip dim", "Needs tags"));
@@ -866,6 +869,19 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     var move = form.dir === "Short" ? e - x : x - e;
     return move / risk;
   }
+  function parseTags(str) {
+    var seen = {}, out = [];
+    String(str || "").split(",").forEach(function (x) {
+      var v = x.trim().toLowerCase().slice(0, 24);
+      if (v && !seen[v] && out.length < 8) { seen[v] = true; out.push(v); }
+    });
+    return out;
+  }
+  function allTags() {
+    var m = {};
+    trades.forEach(function (t) { toArr(t.tags).forEach(function (x) { m[x] = true; }); });
+    return Object.keys(m).sort();
+  }
   function planR(e, sp, tg, dir) {
     if (e === null || sp === null || tg === null || !dir || e === sp) return null;
     var move = dir === "Short" ? e - tg : tg - e;
@@ -884,7 +900,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     form = { dir: "Short", tf: "5m" };
     $("f-date").value = todayIso();
     $("f-pair").value = "XAUUSD";
-    ["f-entry", "f-stop", "f-exit", "f-target", "f-r", "f-link", "f-notes"].forEach(function (id) { $(id).value = ""; });
+    ["f-entry", "f-stop", "f-exit", "f-target", "f-r", "f-tags", "f-link", "f-notes"].forEach(function (id) { $(id).value = ""; });
     $("form-title").textContent = "Log a trade";
     $("save").textContent = "Save trade";
     $("cancel").hidden = true;
@@ -907,6 +923,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("f-exit").value = t.exit === undefined || t.exit === null ? "" : t.exit;
     $("f-target").value = t.target === undefined || t.target === null ? "" : t.target;
     $("f-r").value = (t.entry === undefined || t.entry === null || t.entry === "") ? t.r : "";
+    $("f-tags").value = toArr(t.tags).join(", ");
     $("f-link").value = t.link || "";
     $("f-notes").value = t.notes || "";
     CHK = {};
@@ -950,6 +967,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       if (MULTI[k]) { var arr = toArr(form[k]); if (arr.length) doc[k] = arr; }
       else if (form[k]) doc[k] = form[k];
     });
+    var tg2 = parseTags($("f-tags").value);
+    if (tg2.length) doc.tags = tg2;
     var link = $("f-link").value.trim();
     if (link) doc.link = link;
     var notes = $("f-notes").value.trim();
@@ -1006,14 +1025,14 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
   }
   function buildCsv() {
-    var cols = ["date", "pair", "dir", "tf", "entry", "stop", "exit", "target", "plan", "r", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "chkS", "chkN", "mood", "link", "notes"];
+    var cols = ["date", "pair", "dir", "tf", "entry", "stop", "exit", "target", "plan", "r", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "chkS", "chkN", "mood", "tags", "link", "notes"];
     var lines = [cols.join(",")];
     sorted(view()).forEach(function (t) { lines.push(cols.map(function (c) { return csvCell(t[c]); }).join(",")); });
     return lines.join("\n");
   }
 
   /* ---------- filters (change what the stats, curve, patterns and log show) ---------- */
-  var FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "" };
+  var FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "", tag: "" };
   var TF_ORDER = ["1m", "3m", "5m", "15m", "30m", "1h", "4h"];
 
   function fRange() {
@@ -1031,7 +1050,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     return [r[0], r[1]];
   }
   function filtersActive() {
-    return FILTER.period !== "all" || !!FILTER.pair || !!FILTER.dir || !!FILTER.tf || !!FILTER.grade;
+    return FILTER.period !== "all" || !!FILTER.pair || !!FILTER.dir || !!FILTER.tf || !!FILTER.grade || !!FILTER.tag;
   }
   function view() {
     var r = fRange();
@@ -1040,6 +1059,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       if (FILTER.pair && t.pair !== FILTER.pair) return false;
       if (FILTER.dir && t.dir !== FILTER.dir) return false;
       if (FILTER.tf && t.tf !== FILTER.tf) return false;
+      if (FILTER.tag && toArr(t.tags).indexOf(FILTER.tag) < 0) return false;
       if (FILTER.grade === "none") { if (gradeOf(t)) return false; }
       else if (FILTER.grade && gradeOf(t) !== FILTER.grade) return false;
       return true;
@@ -1066,6 +1086,10 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       if (t.pair) pairs[t.pair] = true;
       if (t.tf) tfs[t.tf] = true;
     });
+    var dl = $("tag-list");
+    clear(dl);
+    allTags().forEach(function (x) { var o = document.createElement("option"); o.value = x; dl.appendChild(o); });
+    fillSelect("flt-tag", allTags(), "All tags", "tag");
     fillSelect("flt-pair", Object.keys(pairs).sort(), "All pairs", "pair");
     fillSelect("flt-tf", Object.keys(tfs).sort(function (a, b) {
       var ia = TF_ORDER.indexOf(a), ib = TF_ORDER.indexOf(b);
@@ -1092,7 +1116,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("filters").classList.toggle("on", active);
   }
   function initFilterUI() {
-    [["flt-pair", "pair"], ["flt-dir", "dir"], ["flt-tf", "tf"], ["flt-grade", "grade"]].forEach(function (p) {
+    [["flt-pair", "pair"], ["flt-tag", "tag"], ["flt-dir", "dir"], ["flt-tf", "tf"], ["flt-grade", "grade"]].forEach(function (p) {
       $(p[0]).addEventListener("change", function (e) { FILTER[p[1]] = e.target.value; renderAll(); });
     });
     $("flt-period").addEventListener("change", function (e) {
@@ -1106,7 +1130,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("flt-from").addEventListener("change", function (e) { FILTER.from = e.target.value; renderAll(); });
     $("flt-to").addEventListener("change", function (e) { FILTER.to = e.target.value; renderAll(); });
     $("flt-clear").addEventListener("click", function () {
-      FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "" };
+      FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "", tag: "" };
       renderAll();
     });
   }
