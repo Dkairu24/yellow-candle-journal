@@ -110,6 +110,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ins.good .ins-t { color: var(--yellow); }
 .ins-x { color: var(--muted); font-size: 13px; line-height: 1.45; }
 
+/* screenshots */
+#shot-prev { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+#shot-prev[hidden] { display: none; }
+#shot-prev img { max-width: 100%; max-height: 260px; border-radius: 8px; border: 1px solid var(--line-2); }
+#shot-view img { max-width: 100%; display: block; margin: 0 auto; border-radius: 8px; }
+.shot-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
 /* stats */
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .stat { background: var(--panel); padding: 18px 18px 16px; min-width: 0; }
@@ -369,6 +376,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
           <div class="field"><div class="lab">Followed your rules?</div><div class="seg" id="seg-rules" data-name="rules" role="radiogroup" aria-label="Followed rules"></div></div>
           <div class="field span-2"><div class="lab">Mindset</div><div class="seg" id="seg-mood" data-name="mood" role="radiogroup" aria-label="Mindset"></div></div>
           <div class="field wide"><label for="f-tags">Your own tags (separate with commas)</label><input id="f-tags" type="text" list="tag-list" maxlength="120" placeholder="news day, london open, A+ entry"><datalist id="tag-list"></datalist></div>
+          <div class="field wide"><label for="f-shot">Chart screenshot</label><input id="f-shot" type="file" accept="image/*"><div class="shot-hint">Or press Ctrl+V / Cmd+V anywhere on the page to paste one. It stays in this browser and is not part of the backup file.</div><div id="shot-prev" hidden></div></div>
           <div class="field wide"><label for="f-link">Chart snapshot link</label><input id="f-link" type="url" placeholder="https://www.tradingview.com/x/..."></div>
           <div class="field wide"><label for="f-notes">Notes: what would you change?</label><textarea id="f-notes" placeholder="What the zone looked like, what price did, what you would do differently."></textarea></div>
         </div>
@@ -398,6 +406,12 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   </section>
 
   <p class="foot">Past results do not predict future results. CFDs are high risk and most retail accounts lose money.</p>
+</div>
+<div id="shot-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Trade screenshot">
+  <div class="modal-box">
+    <div class="modal-head"><h2>Chart screenshot</h2><button class="btn small" id="shot-close" type="button">Close</button></div>
+    <div id="shot-view"></div>
+  </div>
 </div>
 <div id="recap-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="recap-title">
   <div class="modal-box">
@@ -796,6 +810,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       var bd = h("button", "btn small" + (armedDelete === t.id ? " danger-armed" : ""), armedDelete === t.id ? "Confirm delete" : "Delete");
       bd.type = "button"; bd.setAttribute("data-del", t.id);
       var bc = h("button", "btn small", "Card"); bc.type = "button"; bc.setAttribute("data-card", t.id);
+      if (t.shot) { var bs = h("button", "btn small", "Chart"); bs.type = "button"; bs.setAttribute("data-shot", t.id); act.appendChild(bs); }
       act.appendChild(bc); act.appendChild(be); act.appendChild(bd);
       tdAct.appendChild(act);
       tr.appendChild(tdAct);
@@ -907,6 +922,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("form-error").textContent = "";
     CHK = {};
     renderCheck();
+    resetShot();
     syncSegs();
     updatePreview();
   }
@@ -924,6 +940,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("f-target").value = t.target === undefined || t.target === null ? "" : t.target;
     $("f-r").value = (t.entry === undefined || t.entry === null || t.entry === "") ? t.r : "";
     $("f-tags").value = toArr(t.tags).join(", ");
+    loadShotForEdit(t);
     $("f-link").value = t.link || "";
     $("f-notes").value = t.notes || "";
     CHK = {};
@@ -983,6 +1000,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     doc.created = existing && existing.created ? existing.created : Date.now();
     var id = editingId || ("t" + Date.now() + Math.random().toString(36).slice(2, 6));
     doc.id = id;
+    saveShotFor(id, doc);
+    if (!doc.shot && existing && existing.shot && !SHOT.remove) doc.shot = true;
     var wasEditing = !!editingId;
     var at = -1;
     trades.forEach(function (t, i) { if (t.id === id) at = i; });
@@ -998,6 +1017,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     var ed = t.getAttribute("data-edit");
     var del = t.getAttribute("data-del");
     var cd = t.getAttribute("data-card");
+    var sh = t.getAttribute("data-shot");
+    if (sh) { openShot(sh); return; }
     if (cd) { openCard(cd); return; }
     if (ed) { startEdit(ed); return; }
     if (del) {
@@ -1005,6 +1026,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
         clearTimeout(armTimer);
         armedDelete = null;
         trades = trades.filter(function (t) { return t.id !== del; });
+        shotDel(del).catch(function () {});
         persist();
         if (editingId === del) resetForm();
         toast("Trade deleted");
@@ -1293,6 +1315,127 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       grid.appendChild(c);
     });
     box.appendChild(grid);
+  }
+
+  /* ---------- trade screenshots (kept in this browser only, never uploaded) ---------- */
+  var SHOT = { blob: null, url: "", remove: false };
+  var shotDb = null;
+  function openShotDb() {
+    return new Promise(function (resolve, reject) {
+      if (shotDb) { resolve(shotDb); return; }
+      if (!window.indexedDB) { reject(new Error("no idb")); return; }
+      var req = indexedDB.open("yellow-candle-shots", 1);
+      req.onupgradeneeded = function () { req.result.createObjectStore("shots"); };
+      req.onsuccess = function () { shotDb = req.result; resolve(shotDb); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function shotTx(mode, fn) {
+    return openShotDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction("shots", mode);
+        var out = fn(tx.objectStore("shots"));
+        tx.oncomplete = function () { resolve(out && out.result !== undefined ? out.result : undefined); };
+        tx.onerror = function () { reject(tx.error); };
+        tx.onabort = function () { reject(tx.error); };
+      });
+    });
+  }
+  function shotPut(id, blob) { return shotTx("readwrite", function (s) { return s.put(blob, id); }); }
+  function shotGet(id) { return shotTx("readonly", function (s) { return s.get(id); }); }
+  function shotDel(id) { return shotTx("readwrite", function (s) { return s.delete(id); }); }
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var max = 1400, w = img.naturalWidth, hgt = img.naturalHeight;
+        var sc = Math.min(1, max / Math.max(w, hgt));
+        var c = document.createElement("canvas");
+        c.width = Math.round(w * sc); c.height = Math.round(hgt * sc);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { b ? resolve(b) : reject(new Error("encode")); }, "image/jpeg", 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("load")); };
+      img.src = url;
+    });
+  }
+  function renderShotPreview() {
+    var box = $("shot-prev");
+    clear(box);
+    if (SHOT.url) {
+      var im = document.createElement("img");
+      im.src = SHOT.url; im.alt = "Chart screenshot for this trade";
+      box.appendChild(im);
+      var rm = h("button", "btn small", "Remove screenshot"); rm.type = "button";
+      rm.addEventListener("click", function () { setShot(null, true); });
+      box.appendChild(rm);
+    }
+    box.hidden = !SHOT.url;
+  }
+  function setShot(blob, remove) {
+    if (SHOT.url) URL.revokeObjectURL(SHOT.url);
+    SHOT = { blob: blob, url: blob ? URL.createObjectURL(blob) : "", remove: !!remove };
+    renderShotPreview();
+  }
+  function resetShot() { setShot(null, false); $("f-shot").value = ""; }
+  function loadShotForEdit(t) {
+    resetShot();
+    if (!t.shot) return;
+    shotGet(t.id).then(function (b) {
+      if (b && editingId === t.id && !SHOT.blob && !SHOT.remove) {
+        if (SHOT.url) URL.revokeObjectURL(SHOT.url);
+        SHOT = { blob: null, url: URL.createObjectURL(b), remove: false, kept: true };
+        renderShotPreview();
+      }
+    }).catch(function () {});
+  }
+  function takeImage(file) {
+    if (!file || !/^image\//.test(file.type)) { toast("That is not an image"); return; }
+    shrinkImage(file).then(function (b) { setShot(b, false); toast("Screenshot attached. Save the trade to keep it."); })
+      .catch(function () { toast("Could not read that image"); });
+  }
+  function saveShotFor(id, doc) {
+    if (SHOT.blob) {
+      doc.shot = true;
+      shotPut(id, SHOT.blob).catch(function () { toast("This browser would not store the screenshot"); });
+    } else if (SHOT.remove) {
+      delete doc.shot;
+      shotDel(id).catch(function () {});
+    } else if (SHOT.kept) {
+      doc.shot = true;
+    }
+  }
+  function openShot(id) {
+    var modal = $("shot-modal"), box = $("shot-view");
+    clear(box);
+    box.appendChild(h("p", "note", "Loading..."));
+    modal.hidden = false;
+    shotGet(id).then(function (b) {
+      clear(box);
+      if (!b) { box.appendChild(h("p", "note", "This screenshot is not stored on this device. Screenshots stay in the browser where you attached them and are not part of the backup file.")); return; }
+      var im = document.createElement("img");
+      im.alt = "Trade screenshot"; im.src = URL.createObjectURL(b);
+      box.appendChild(im);
+    }).catch(function () { clear(box); box.appendChild(h("p", "note", "Could not open the screenshot store.")); });
+  }
+  function initShotUI() {
+    $("f-shot").addEventListener("change", function (e) { takeImage(e.target.files && e.target.files[0]); e.target.value = ""; });
+    document.addEventListener("paste", function (e) {
+      var items = (e.clipboardData && e.clipboardData.items) || [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === "file" && /^image\//.test(items[i].type)) {
+          var tag = (e.target && e.target.tagName) || "";
+          if (/INPUT|TEXTAREA/.test(tag) && e.target.type !== "file") { /* still take images pasted into any field */ }
+          takeImage(items[i].getAsFile());
+          e.preventDefault();
+          return;
+        }
+      }
+    });
+    $("shot-close").addEventListener("click", function () { $("shot-modal").hidden = true; });
+    $("shot-modal").addEventListener("click", function (e) { if (e.target === $("shot-modal")) $("shot-modal").hidden = true; });
   }
 
   /* ---------- pre-trade checklist (your rules, saved in this browser) ---------- */
@@ -2467,6 +2610,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     initRecapUI();
     initCheckUI();
     initFilterUI();
+    initShotUI();
     initCalendarUI();
     $("export").addEventListener("click", exportCsv);
     $("backup").addEventListener("click", backupJson);
