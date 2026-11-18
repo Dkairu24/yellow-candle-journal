@@ -230,7 +230,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
           <div class="field"><div class="lab">1h bias</div><div class="seg bear" id="seg-htf" data-name="htf" role="radiogroup" aria-label="1h bias"></div></div>
           <div class="field span-2"><div class="lab">HTF POI</div><div class="seg" id="seg-poi" data-name="poi" role="radiogroup" aria-label="HTF POI"></div></div>
           <div class="field"><div class="lab">Liquidity sweep</div><div class="seg" id="seg-sweep" data-name="sweep" role="radiogroup" aria-label="Liquidity sweep"></div></div>
-          <div class="field"><div class="lab">Trigger</div><div class="seg" id="seg-trigger" data-name="trigger" role="radiogroup" aria-label="Trigger"></div></div>
+          <div class="field"><div class="lab">Trigger (pick one or both)</div><div class="seg" id="seg-trigger" data-name="trigger" role="radiogroup" aria-label="Trigger"></div></div>
           <div class="field"><div class="lab">Displacement</div><div class="seg" id="seg-disp" data-name="disp" role="radiogroup" aria-label="Displacement"></div></div>
           <div class="field"><div class="lab">Fresh zone</div><div class="seg" id="seg-fresh" data-name="fresh" role="radiogroup" aria-label="Fresh zone"></div></div>
         </div>
@@ -286,7 +286,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     disp: ["Strong", "Weak"],
     fresh: ["Yes", "No"],
     rules: ["Yes", "No"],
-    mood: ["Calm", "Confident", "Rushed", "Bored", "FOMO", "Revenge"]
+    mood: ["Calm", "Confident", "Rushed", "Bored", "Fear", "FOMO", "Revenge"]
   };
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -297,6 +297,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   var armedDelete = null;
   var armTimer = null;
   var form = {};
+  var MULTI = { trigger: true };
+  function toArr(v) { return Array.isArray(v) ? v.slice() : (v ? [v] : []); }
 
   function $(id) { return document.getElementById(id); }
   function h(tag, cls, text) {
@@ -471,10 +473,13 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     GROUPS.forEach(function (g) {
       var key = g[1], map = {}, order = [];
       trades.forEach(function (t) {
-        var v = t[key];
-        if (v === undefined || v === null || v === "") return;
-        if (!map[v]) { map[v] = { n: 0, w: 0, sum: 0 }; order.push(v); }
-        map[v].n++; map[v].sum += t.r; if (t.r > 0) map[v].w++;
+        var raw = t[key];
+        var vals = Array.isArray(raw) ? raw : [raw];
+        vals.forEach(function (v) {
+          if (v === undefined || v === null || v === "") return;
+          if (!map[v]) { map[v] = { n: 0, w: 0, sum: 0 }; order.push(v); }
+          map[v].n++; map[v].sum += t.r; if (t.r > 0) map[v].w++;
+        });
       });
       if (!order.length) return;
       var known = OPTIONS[key] || [];
@@ -506,7 +511,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       box.appendChild(h("div", "empty", "None of your trades carry tags yet. Fill in the \"Why you took it\" section when you log."));
     } else {
       box.appendChild(cards);
-      box.appendChild(h("div", "note", "Each row: average R  |  win rate  |  number of trades. Yellow bars made money on average, white bars lost."));
+      box.appendChild(h("div", "note", "Each row: average R  |  win rate  |  number of trades. Yellow bars made money on average, white bars lost. A trade tagged with both BOS and CHOCH counts in each row."));
     }
   }
 
@@ -544,7 +549,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       tr.appendChild(h("td", "r num " + rClass(t.r), fmtR(t.r)));
       var tdTags = h("td");
       var chips = h("div", "chips");
-      [["htf", ""], ["poi", ""], ["trigger", ""]].forEach(function (k) { if (t[k[0]]) chips.appendChild(h("span", "chip", t[k[0]])); });
+      ["htf", "poi", "trigger"].forEach(function (k) { toArr(t[k]).forEach(function (x) { chips.appendChild(h("span", "chip", x)); }); });
       if (t.sweep === "Yes") chips.appendChild(h("span", "chip", "Sweep"));
       if (t.disp === "Strong") chips.appendChild(h("span", "chip", "Strong disp."));
       if (t.fresh === "Yes") chips.appendChild(h("span", "chip", "Fresh"));
@@ -588,11 +593,18 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       OPTIONS[name].forEach(function (opt) {
         var b = h("button", "", opt);
         b.type = "button";
-        b.setAttribute("role", "radio");
+        b.setAttribute("role", MULTI[name] ? "checkbox" : "radio");
         b.setAttribute("aria-checked", "false");
         b.setAttribute("data-v", opt);
         b.addEventListener("click", function () {
-          form[name] = form[name] === opt ? "" : opt;
+          if (MULTI[name]) {
+            var cur = toArr(form[name]);
+            var at = cur.indexOf(opt);
+            if (at >= 0) cur.splice(at, 1); else cur.push(opt);
+            form[name] = cur;
+          } else {
+            form[name] = form[name] === opt ? "" : opt;
+          }
           syncSegs();
           updatePreview();
         });
@@ -605,7 +617,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       var el = $("seg-" + name);
       if (!el) return;
       Array.prototype.forEach.call(el.children, function (b) {
-        b.setAttribute("aria-checked", form[name] === b.getAttribute("data-v") ? "true" : "false");
+        var on = MULTI[name] ? toArr(form[name]).indexOf(b.getAttribute("data-v")) >= 0 : form[name] === b.getAttribute("data-v");
+        b.setAttribute("aria-checked", on ? "true" : "false");
       });
     });
   }
@@ -648,7 +661,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     if (!t) return;
     editingId = id;
     form = {};
-    Object.keys(OPTIONS).forEach(function (k) { form[k] = t[k] || ""; });
+    Object.keys(OPTIONS).forEach(function (k) { form[k] = MULTI[k] ? toArr(t[k]) : (t[k] || ""); });
     $("f-date").value = t.date || todayIso();
     $("f-pair").value = t.pair || "";
     $("f-entry").value = t.entry === undefined || t.entry === null ? "" : t.entry;
@@ -685,7 +698,10 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     if (e !== null) doc.entry = e;
     if (sp !== null) doc.stop = sp;
     if (x !== null) doc.exit = x;
-    ["htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "mood"].forEach(function (k) { if (form[k]) doc[k] = form[k]; });
+    ["htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "mood"].forEach(function (k) {
+      if (MULTI[k]) { var arr = toArr(form[k]); if (arr.length) doc[k] = arr; }
+      else if (form[k]) doc[k] = form[k];
+    });
     var link = $("f-link").value.trim();
     if (link) doc.link = link;
     var notes = $("f-notes").value.trim();
@@ -730,7 +746,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   /* ---------- export ---------- */
   function csvCell(v) {
     if (v === undefined || v === null) return "";
-    var str = String(v);
+    var str = Array.isArray(v) ? v.join(" + ") : String(v);
     return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
   }
   function buildCsv() {
@@ -754,6 +770,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       var c = {};
       for (var k in t) c[k] = t[k];
       c.r = r;
+      if (c.trigger !== undefined) c.trigger = toArr(c.trigger);
       c.id = String(t.id || ("t" + Date.now() + Math.random().toString(36).slice(2, 6)));
       out.push(c);
     });
