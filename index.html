@@ -346,6 +346,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
           <div class="field"><label for="f-entry">Entry</label><input id="f-entry" type="number" step="any" inputmode="decimal" placeholder="4054.925"></div>
           <div class="field"><label for="f-stop">Stop</label><input id="f-stop" type="number" step="any" inputmode="decimal" placeholder="4062.071"></div>
           <div class="field"><label for="f-exit">Exit</label><input id="f-exit" type="number" step="any" inputmode="decimal" placeholder="4013.956"></div>
+          <div class="field"><label for="f-target">Planned target (optional)</label><input id="f-target" type="number" step="any" inputmode="decimal" placeholder="3R or your BOS level"></div>
           <div class="field"><label for="f-r">R (only to override)</label><input id="f-r" type="number" step="any" inputmode="decimal" placeholder="auto"></div>
           <div class="field"><div class="lab">Result</div><div class="r-preview num" id="r-preview">-</div></div>
         </div>
@@ -774,6 +775,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       if (t.disp === "Strong") chips.appendChild(h("span", "chip", "Strong disp."));
       if (t.fresh === "Yes") chips.appendChild(h("span", "chip", "Fresh"));
       if (t.mood) chips.appendChild(h("span", "chip dim", t.mood));
+      if (t.plan) chips.appendChild(h("span", "chip dim", "Plan " + fmtR(t.plan)));
       if (t.chkN) chips.appendChild(h("span", "chip", "Setup " + gradeOf(t) + "  " + t.chkS + "/" + t.chkN));
       if (t.imported && !t.htf && !t.poi && !toArr(t.trigger).length) chips.appendChild(h("span", "chip dim", "Needs tags"));
       tdTags.appendChild(chips);
@@ -864,7 +866,14 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     var move = form.dir === "Short" ? e - x : x - e;
     return move / risk;
   }
+  function planR(e, sp, tg, dir) {
+    if (e === null || sp === null || tg === null || !dir || e === sp) return null;
+    var move = dir === "Short" ? e - tg : tg - e;
+    return move / Math.abs(e - sp);
+  }
   function updatePreview() {
+    var pr = planR(num("f-entry"), num("f-stop"), num("f-target"), form.dir);
+    $("f-target").title = pr === null ? "" : "Planned " + fmtR(Math.round(pr * 100) / 100);
     var r = computeR();
     var p = $("r-preview");
     p.textContent = r === null ? "-" : fmtR(Math.round(r * 100) / 100);
@@ -875,7 +884,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     form = { dir: "Short", tf: "5m" };
     $("f-date").value = todayIso();
     $("f-pair").value = "XAUUSD";
-    ["f-entry", "f-stop", "f-exit", "f-r", "f-link", "f-notes"].forEach(function (id) { $(id).value = ""; });
+    ["f-entry", "f-stop", "f-exit", "f-target", "f-r", "f-link", "f-notes"].forEach(function (id) { $(id).value = ""; });
     $("form-title").textContent = "Log a trade";
     $("save").textContent = "Save trade";
     $("cancel").hidden = true;
@@ -896,6 +905,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("f-entry").value = t.entry === undefined || t.entry === null ? "" : t.entry;
     $("f-stop").value = t.stop === undefined || t.stop === null ? "" : t.stop;
     $("f-exit").value = t.exit === undefined || t.exit === null ? "" : t.exit;
+    $("f-target").value = t.target === undefined || t.target === null ? "" : t.target;
     $("f-r").value = (t.entry === undefined || t.entry === null || t.entry === "") ? t.r : "";
     $("f-link").value = t.link || "";
     $("f-notes").value = t.notes || "";
@@ -930,6 +940,12 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     if (e !== null) doc.entry = e;
     if (sp !== null) doc.stop = sp;
     if (x !== null) doc.exit = x;
+    var tg = num("f-target");
+    if (tg !== null) {
+      doc.target = tg;
+      var pl = planR(e, sp, tg, form.dir);
+      if (pl !== null && pl > 0) doc.plan = Math.round(pl * 100) / 100;
+    }
     ["htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "mood"].forEach(function (k) {
       if (MULTI[k]) { var arr = toArr(form[k]); if (arr.length) doc[k] = arr; }
       else if (form[k]) doc[k] = form[k];
@@ -990,7 +1006,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
   }
   function buildCsv() {
-    var cols = ["date", "pair", "dir", "tf", "entry", "stop", "exit", "r", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "chkS", "chkN", "mood", "link", "notes"];
+    var cols = ["date", "pair", "dir", "tf", "entry", "stop", "exit", "target", "plan", "r", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "chkS", "chkN", "mood", "link", "notes"];
     var lines = [cols.join(",")];
     sorted(view()).forEach(function (t) { lines.push(cols.map(function (c) { return csvCell(t[c]); }).join(",")); });
     return lines.join("\n");
@@ -1191,6 +1207,19 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     });
     var calm = list.filter(function (t) { return t.mood === "Calm" || t.mood === "Confident"; });
     if (calm.length >= 3 && avgR(calm) > 0) out.push({ tone: "good", title: "Calm trades pay", text: calm.length + " trades taken calm or confident averaged " + fmtR(avgR(calm)) + "." });
+    // planned vs actual
+    var pl = list.filter(function (t) { return t.plan > 0; });
+    if (pl.length >= 3) {
+      var planned = pl.reduce(function (a, t) { return a + t.plan; }, 0);
+      var got = sumR(pl);
+      var early = pl.filter(function (t) { return t.r > 0 && t.r < t.plan - 0.5; });
+      var hit = pl.filter(function (t) { return t.r >= t.plan * 0.95; });
+      out.push({ tone: got >= planned * 0.6 ? "info" : "warn", title: "Plan vs result: " + fmtR(got) + " of " + fmtR(planned), text: "Across " + pl.length + " trades with a planned target you captured " + Math.round(got / planned * 100) + "% of the R you planned. " + hit.length + " of " + pl.length + " reached the target." });
+      if (early.length >= 2) {
+        var left = early.reduce(function (a, t) { return a + (t.plan - t.r); }, 0);
+        out.push({ tone: "warn", title: "Exiting early: " + fmtR(left) + " left behind", text: early.length + " winners closed well short of target. If the plan was sound, let the trade reach it." });
+      }
+    }
     // setup score
     var low = list.filter(function (t) { return gradeOf(t) === "C"; });
     var top = list.filter(function (t) { return gradeOf(t) === "A"; });
@@ -2408,7 +2437,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("cancel").addEventListener("click", resetForm);
     $("log").addEventListener("click", onLogClick);
     $("jump").addEventListener("click", function () { $("form-panel").scrollIntoView({ behavior: "smooth", block: "start" }); });
-    ["f-entry", "f-stop", "f-exit", "f-r"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
+    ["f-entry", "f-stop", "f-exit", "f-target", "f-r"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
     initCardUI();
     initImportUI();
     initRecapUI();
