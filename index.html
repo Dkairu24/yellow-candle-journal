@@ -164,6 +164,22 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
 }
 #toast.show { opacity: 1; }
 
+/* result card window */
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.86); overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal[hidden] { display: none !important; }
+.modal-box { max-width: 1040px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line-2); border-radius: 16px; padding: 18px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.modal-head h2 { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; }
+.modal-body { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 20px; align-items: start; }
+.card-stage { display: flex; justify-content: center; min-width: 0; }
+#card-canvas { max-width: 100%; max-height: 78vh; width: auto; height: auto; border: 1px solid var(--line-2); border-radius: 8px; background: #000; }
+.card-controls { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.check { display: flex; gap: 10px; align-items: center; color: var(--fg); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--yellow); flex: none; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 760px) { .modal-body { grid-template-columns: minmax(0, 1fr); } }
+
 @media (max-width: 560px) {
   .span-2 { grid-column: auto; }
   .stat.lead .value { font-size: 34px; }
@@ -269,6 +285,29 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   </section>
 
   <p class="foot">Past results do not predict future results. CFDs are high risk and most retail accounts lose money.</p>
+</div>
+<div id="card-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="card-title">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="card-title">Result card</h2>
+      <button class="btn small" id="card-close" type="button">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="card-stage"><canvas id="card-canvas" width="1080" height="1350" aria-label="Preview of your result card"></canvas></div>
+      <div class="card-controls">
+        <div class="field"><div class="lab">Format</div><div class="seg" id="card-fmt" role="radiogroup" aria-label="Card format"></div></div>
+        <label class="check"><input type="checkbox" id="card-prices" checked> Show entry, stop and exit prices</label>
+        <label class="check"><input type="checkbox" id="card-tags" checked> Show setup tags</label>
+        <div class="field"><label for="card-handle">Handle on the card</label><input id="card-handle" type="text" maxlength="40"></div>
+        <div class="field"><div class="lab">Chart screenshot (optional)</div>
+          <div class="row"><button class="btn small" id="card-img-btn" type="button">Add screenshot</button><button class="btn small" id="card-img-clear" type="button" hidden>Remove</button></div>
+          <input id="card-img-file" type="file" accept="image/*" hidden>
+        </div>
+        <button class="btn primary" id="card-download" type="button">Download PNG</button>
+        <p class="note" style="margin:0">With no screenshot, the card draws your entry, stop and exit to scale. Nothing here is uploaded.</p>
+      </div>
+    </div>
+  </div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -568,7 +607,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       var be = h("button", "btn small", "Edit"); be.type = "button"; be.setAttribute("data-edit", t.id);
       var bd = h("button", "btn small" + (armedDelete === t.id ? " danger-armed" : ""), armedDelete === t.id ? "Confirm delete" : "Delete");
       bd.type = "button"; bd.setAttribute("data-del", t.id);
-      act.appendChild(be); act.appendChild(bd);
+      var bc = h("button", "btn small", "Card"); bc.type = "button"; bc.setAttribute("data-card", t.id);
+      act.appendChild(bc); act.appendChild(be); act.appendChild(bd);
       tdAct.appendChild(act);
       tr.appendChild(tdAct);
       tb.appendChild(tr);
@@ -724,6 +764,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     if (!t || !t.getAttribute) return;
     var ed = t.getAttribute("data-edit");
     var del = t.getAttribute("data-del");
+    var cd = t.getAttribute("data-card");
+    if (cd) { openCard(cd); return; }
     if (ed) { startEdit(ed); return; }
     if (del) {
       if (armedDelete === del) {
@@ -754,6 +796,324 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     var lines = [cols.join(",")];
     sorted().forEach(function (t) { lines.push(cols.map(function (c) { return csvCell(t[c]); }).join(",")); });
     return lines.join("\n");
+  }
+
+  /* ---------- result cards (drawn on a canvas, saved as PNG) ---------- */
+  var CARD = { trade: null, img: null, fmt: "feed", prices: true, tags: true, handle: "@theyellowcandlefx" };
+  var CARD_SIZES = { feed: [1080, 1350], story: [1080, 1920], square: [1080, 1080] };
+  try {
+    var savedHandle = window.localStorage.getItem("yellow-candle-handle");
+    if (savedHandle) CARD.handle = savedHandle;
+  } catch (e) { /* keep the default handle */ }
+
+  function cardDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    if (!m) return "";
+    return parseInt(m[3], 10) + " " + MON[parseInt(m[2], 10) - 1].toUpperCase() + " " + m[1];
+  }
+  function spaced(ctx, str, x, y, sp, align) {
+    var total = 0, i;
+    for (i = 0; i < str.length; i++) total += ctx.measureText(str.charAt(i)).width + sp;
+    total -= sp;
+    var cx = align === "right" ? x - total : x;
+    ctx.textAlign = "left";
+    for (i = 0; i < str.length; i++) {
+      ctx.fillText(str.charAt(i), cx, y);
+      cx += ctx.measureText(str.charAt(i)).width + sp;
+    }
+    return total;
+  }
+  function rr(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+  function cardTags(t) {
+    var out = [];
+    if (t.htf) out.push(t.htf + " 1H bias");
+    if (t.poi) out.push(t.poi);
+    if (t.sweep === "Yes") out.push("Liquidity sweep");
+    toArr(t.trigger).forEach(function (x) { out.push(x); });
+    if (t.disp === "Strong") out.push("Strong displacement");
+    if (t.fresh === "Yes") out.push("Fresh zone");
+    return out;
+  }
+  function isNum(v) { return v !== undefined && v !== null && v !== "" && !isNaN(Number(v)); }
+
+  var DISPLAY = '"Archivo Black","Arial Black",Impact,sans-serif';
+  var BODY = '"Inter",Arial,Helvetica,sans-serif';
+
+  function drawLevels(ctx, t, x, y, w, h, accent, win) {
+    var hasPx = isNum(t.entry) && isNum(t.stop) && isNum(t.exit) && Number(t.entry) !== Number(t.stop);
+    ctx.fillStyle = "#8d8d88";
+    ctx.font = "700 22px " + BODY;
+    spaced(ctx, (t.dir === "Short" ? "SHORT" : "LONG") + "  " + (t.pair || ""), x + 28, y + 44, 3, "left");
+    if (!hasPx) {
+      // no prices to draw: compare the risk (1R) with the result
+      var maxR = Math.max(1, Math.abs(t.r));
+      var bx = x + 56, bw = w - 112;
+      var bh = Math.max(24, Math.min(64, (h - 70 - 68 - 24 - 20) / 2));
+      var y1 = y + 104, y2 = y1 + bh + 24 + 34;
+      ctx.fillStyle = "#8d8d88";
+      ctx.font = "700 22px " + BODY;
+      spaced(ctx, "RISK", bx, y1 - 14, 3, "left");
+      spaced(ctx, "RESULT", bx, y2 - 14, 3, "left");
+      ctx.fillStyle = "#FFFFFF";
+      rr(ctx, bx, y1, Math.max(8, bw * (1 / maxR)), bh, 10); ctx.fill();
+      ctx.fillStyle = accent;
+      rr(ctx, bx, y2, Math.max(8, bw * (Math.abs(t.r) / maxR)), bh, 10); ctx.fill();
+      ctx.font = "32px " + DISPLAY;
+      ctx.fillStyle = "#FFFFFF"; ctx.textAlign = "left";
+      ctx.fillText("1.00R", bx + 18, y1 + bh / 2 + 11);
+      ctx.fillStyle = "#000000";
+      ctx.fillText(fmtR(t.r), bx + 18, y2 + bh / 2 + 11);
+      return;
+    }
+    var e = Number(t.entry), s = Number(t.stop), xt = Number(t.exit);
+    var lo = Math.min(e, s, xt), hi = Math.max(e, s, xt);
+    var pad = (hi - lo) * 0.2 || 1;
+    lo -= pad; hi += pad;
+    var top = y + 70, bottom = y + h - 40;
+    function yOf(v) { return bottom - (v - lo) / (hi - lo) * (bottom - top); }
+    var x1 = x + 56, x2 = x + w - 330;
+    // risk zone (entry to stop) and result zone (entry to exit)
+    ctx.fillStyle = "rgba(255,255,255,0.13)";
+    ctx.fillRect(x1, Math.min(yOf(e), yOf(s)), x2 - x1, Math.abs(yOf(e) - yOf(s)));
+    ctx.fillStyle = win ? "rgba(255,212,0,0.30)" : "rgba(255,255,255,0.22)";
+    ctx.fillRect(x1, Math.min(yOf(e), yOf(xt)), x2 - x1, Math.abs(yOf(e) - yOf(xt)));
+    // level lines
+    function line(v, color, wd, dash) {
+      ctx.strokeStyle = color; ctx.lineWidth = wd; ctx.setLineDash(dash || []);
+      ctx.beginPath(); ctx.moveTo(x1, yOf(v)); ctx.lineTo(x2, yOf(v)); ctx.stroke(); ctx.setLineDash([]);
+    }
+    line(s, "#FFFFFF", 4);
+    line(e, "#FFFFFF", 3, [12, 10]);
+    line(xt, accent, 5);
+    // labels on the right, pushed apart so they never overlap
+    var items = [
+      { v: s, name: "STOP", color: "#FFFFFF" },
+      { v: e, name: "ENTRY", color: "#FFFFFF" },
+      { v: xt, name: "EXIT", color: accent }
+    ];
+    items.sort(function (a, b) { return yOf(a.v) - yOf(b.v); });
+    var gap = Math.min(74, (h - 100) / 3), prev = -1e9;
+    items.forEach(function (it) { it.y = Math.max(yOf(it.v), prev + gap); prev = it.y; });
+    var overflow = items[items.length - 1].y - (y + h - 30);
+    if (overflow > 0) items.forEach(function (it) { it.y -= overflow; });
+    items.forEach(function (it) {
+      ctx.strokeStyle = "#555555"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x2, yOf(it.v)); ctx.lineTo(x2 + 26, it.y); ctx.stroke();
+      ctx.fillStyle = "#8d8d88"; ctx.font = "700 20px " + BODY;
+      spaced(ctx, it.name, x2 + 40, it.y - 8, 3, "left");
+      ctx.fillStyle = it.color; ctx.font = "34px " + DISPLAY; ctx.textAlign = "left";
+      ctx.fillText(fmtPx(it.v), x2 + 40, it.y + 28);
+    });
+  }
+
+  function drawCard(canvas) {
+    var t = CARD.trade;
+    if (!t) return;
+    var size = CARD_SIZES[CARD.fmt] || CARD_SIZES.feed, W = size[0], H = size[1];
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext("2d");
+    var win = t.r >= 0.1, loss = t.r <= -0.1;
+    var accent = win ? "#FFD400" : loss ? "#FFFFFF" : "#8d8d88";
+    ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "#3a3a3a"; ctx.lineWidth = 2; ctx.strokeRect(24, 24, W - 48, H - 48);
+
+    // header: candle mark, name, handle
+    ctx.strokeStyle = "#FFD400"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(81, 70); ctx.lineTo(81, 116); ctx.stroke();
+    ctx.fillStyle = "#FFD400"; ctx.fillRect(72, 80, 18, 26);
+    ctx.font = "34px " + DISPLAY; ctx.textBaseline = "alphabetic";
+    spaced(ctx, "THE YELLOW CANDLE", 112, 105, 2, "left");
+    ctx.fillStyle = "#969696"; ctx.font = "700 28px " + BODY;
+    spaced(ctx, CARD.handle || "", W - 70, 103, 0, "right");
+
+    // pair and side pills, date
+    var py = 150;
+    ctx.font = "700 30px " + BODY;
+    var pair = t.pair || "XAUUSD";
+    var pw = ctx.measureText(pair).width + 56;
+    ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 2; rr(ctx, 71, py + 1, pw, 56, 28); ctx.stroke();
+    ctx.fillStyle = "#FFFFFF"; ctx.textAlign = "left"; ctx.fillText(pair, 71 + 28, py + 39);
+    var side = (t.dir || "").toUpperCase();
+    var sw = ctx.measureText(side).width + 56, sx = 71 + pw + 16;
+    ctx.fillStyle = t.dir === "Short" ? "#FFFFFF" : "#FFD400";
+    rr(ctx, sx, py, sw, 58, 29); ctx.fill();
+    ctx.fillStyle = "#000000"; ctx.fillText(side, sx + 28, py + 39);
+    ctx.fillStyle = "#969696"; ctx.font = "700 26px " + BODY;
+    spaced(ctx, cardDate(t.date) + "  |  " + (t.tf || "").toUpperCase(), W - 70, py + 38, 0, "right");
+
+    // the result
+    var big = fmtR(t.r);
+    var bigSize = H < 1200 ? 150 : 210;
+    ctx.font = bigSize + "px " + DISPLAY;
+    while (ctx.measureText(big).width > W - 130 && bigSize > 60) { bigSize -= 6; ctx.font = bigSize + "px " + DISPLAY; }
+    var baseline = 235 + Math.round(bigSize * 0.86);
+    ctx.fillStyle = accent; ctx.textAlign = "left";
+    ctx.fillText(big, 62, baseline);
+    var label = win ? "WINNER" : loss ? (t.r <= -0.95 ? "STOPPED OUT" : "LOSS") : "BREAKEVEN";
+    ctx.font = "700 30px " + BODY;
+    spaced(ctx, label, 70, baseline + 50, 4, "left");
+
+    // bottom blocks, measured from the foot of the card
+    var footY = H - 150;
+    var statsTop = footY - 24 - 110;
+    var tags = CARD.tags ? cardTags(t) : [];
+    var tagsTop = statsTop - 74;
+    var panelTop = baseline + 50 + 34;
+    var panelBottom = (tags.length ? tagsTop : statsTop) - 28;
+    var panelH = Math.max(160, panelBottom - panelTop);
+    var px = 54, pwid = W - 108;
+
+    // chart panel: screenshot if given, else the levels drawn to scale
+    ctx.save();
+    rr(ctx, px, panelTop, pwid, panelH, 18); ctx.clip();
+    ctx.fillStyle = "#0b0b0b"; ctx.fillRect(px, panelTop, pwid, panelH);
+    if (CARD.img) {
+      var sc = Math.max(pwid / CARD.img.width, panelH / CARD.img.height);
+      var iw = CARD.img.width * sc, ih = CARD.img.height * sc;
+      ctx.drawImage(CARD.img, px + (pwid - iw) / 2, panelTop + (panelH - ih) / 2, iw, ih);
+    } else if (CARD.prices) {
+      drawLevels(ctx, t, px, panelTop, pwid, panelH, accent, win);
+    } else {
+      drawLevels(ctx, { r: t.r, dir: t.dir, pair: t.pair }, px, panelTop, pwid, panelH, accent, win);
+    }
+    ctx.restore();
+    ctx.strokeStyle = "#464646"; ctx.lineWidth = 2; rr(ctx, px, panelTop, pwid, panelH, 18); ctx.stroke();
+
+    // setup tags
+    if (tags.length) {
+      var cx = 70;
+      ctx.font = "600 22px " + BODY;
+      tags.forEach(function (tg) {
+        var cw = ctx.measureText(tg).width + 30;
+        if (cx + cw > W - 70) return;
+        ctx.strokeStyle = "#555555"; ctx.lineWidth = 2; rr(ctx, cx, tagsTop, cw, 40, 10); ctx.stroke();
+        ctx.fillStyle = "#F4F4F2"; ctx.textAlign = "left"; ctx.fillText(tg, cx + 15, tagsTop + 28);
+        cx += cw + 10;
+      });
+    }
+
+    // stats row
+    var cols;
+    if (CARD.prices && isNum(t.entry)) {
+      cols = [["ENTRY", fmtPx(t.entry), "#FFFFFF"], ["STOP", isNum(t.stop) ? fmtPx(t.stop) : "-", "#FFFFFF"],
+              ["EXIT", isNum(t.exit) ? fmtPx(t.exit) : "-", accent], ["TIMEFRAME", (t.tf || "-").toUpperCase(), "#FFFFFF"]];
+    } else {
+      cols = [["PAIR", pair, "#FFFFFF"], ["SIDE", (t.dir || "-").toUpperCase(), "#FFFFFF"],
+              ["TIMEFRAME", (t.tf || "-").toUpperCase(), "#FFFFFF"], ["RESULT", fmtR(t.r), accent]];
+    }
+    var colw = (W - 140) / 4;
+    cols.forEach(function (c, i) {
+      var cx2 = 70 + i * colw;
+      if (i) { ctx.strokeStyle = "#262626"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx2 - 18, statsTop - 14); ctx.lineTo(cx2 - 18, statsTop + 62); ctx.stroke(); }
+      ctx.fillStyle = "#969696"; ctx.font = "700 22px " + BODY;
+      spaced(ctx, c[0], cx2, statsTop + 6, 3, "left");
+      ctx.fillStyle = c[2]; ctx.font = "700 36px " + BODY; ctx.textAlign = "left";
+      ctx.fillText(c[1], cx2, statsTop + 52);
+    });
+
+    // footer
+    ctx.strokeStyle = "#262626"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(70, footY); ctx.lineTo(W - 70, footY); ctx.stroke();
+    ctx.fillStyle = "#787878"; ctx.font = "400 21px " + BODY; ctx.textAlign = "left";
+    ctx.fillText("Not financial advice. CFDs are high risk; most retail accounts lose money.", 70, footY + 36);
+    ctx.fillStyle = "#969696"; ctx.font = "700 24px " + BODY;
+    ctx.fillText("Yellow up. White down. Black is the discipline.", 70, footY + 70);
+  }
+
+  function renderCard() {
+    var canvas = $("card-canvas");
+    var go = function () { drawCard(canvas); };
+    if (document.fonts && document.fonts.load) {
+      Promise.all([
+        document.fonts.load('40px "Archivo Black"'),
+        document.fonts.load('700 24px "Inter"'),
+        document.fonts.load('600 24px "Inter"'),
+        document.fonts.load('400 24px "Inter"')
+      ]).then(go, go);
+    } else { go(); }
+  }
+  function syncCardUI() {
+    Array.prototype.forEach.call($("card-fmt").children, function (b) {
+      b.setAttribute("aria-checked", b.getAttribute("data-v") === CARD.fmt ? "true" : "false");
+    });
+    $("card-prices").checked = CARD.prices;
+    $("card-tags").checked = CARD.tags;
+    $("card-handle").value = CARD.handle;
+    $("card-img-clear").hidden = !CARD.img;
+    $("card-img-btn").textContent = CARD.img ? "Change screenshot" : "Add screenshot";
+  }
+  function openCard(id) {
+    var t = trades.filter(function (x) { return x.id === id; })[0];
+    if (!t) return;
+    CARD.trade = t;
+    CARD.img = null;
+    $("card-modal").hidden = false;
+    document.body.style.overflow = "hidden";
+    syncCardUI();
+    renderCard();
+    $("card-close").focus();
+  }
+  function closeCard() {
+    $("card-modal").hidden = true;
+    document.body.style.overflow = "";
+  }
+  function initCardUI() {
+    var fmtBox = $("card-fmt");
+    [["feed", "Feed 4:5"], ["story", "Story 9:16"], ["square", "Square 1:1"]].forEach(function (f) {
+      var b = h("button", "", f[1]);
+      b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("data-v", f[0]); b.setAttribute("aria-checked", "false");
+      b.addEventListener("click", function () { CARD.fmt = f[0]; syncCardUI(); renderCard(); });
+      fmtBox.appendChild(b);
+    });
+    $("card-prices").addEventListener("change", function (e) { CARD.prices = e.target.checked; renderCard(); });
+    $("card-tags").addEventListener("change", function (e) { CARD.tags = e.target.checked; renderCard(); });
+    $("card-handle").addEventListener("input", function (e) {
+      CARD.handle = e.target.value;
+      try { window.localStorage.setItem("yellow-candle-handle", CARD.handle); } catch (err) { /* not saved */ }
+      renderCard();
+    });
+    $("card-img-btn").addEventListener("click", function () { $("card-img-file").click(); });
+    $("card-img-clear").addEventListener("click", function () { CARD.img = null; syncCardUI(); renderCard(); });
+    $("card-img-file").addEventListener("change", function (e) {
+      var f = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () { CARD.img = img; syncCardUI(); renderCard(); };
+        img.onerror = function () { toast("That file is not an image"); };
+        img.src = String(reader.result);
+      };
+      reader.readAsDataURL(f);
+    });
+    $("card-download").addEventListener("click", function () {
+      $("card-canvas").toBlob(function (blob) {
+        if (!blob) { toast("Could not make the image"); return; }
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "yellow-candle-" + String((CARD.trade && CARD.trade.pair) || "trade").toLowerCase() + "-" + ((CARD.trade && CARD.trade.date) || todayIso()) + "-" + CARD.fmt + ".png";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        toast("Card saved");
+      }, "image/png");
+    });
+    $("card-close").addEventListener("click", closeCard);
+    $("card-modal").addEventListener("click", function (e) { if (e.target === $("card-modal")) closeCard(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("card-modal").hidden) closeCard(); });
   }
 
   /* ---------- storage (this browser only) ---------- */
@@ -857,6 +1217,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     $("log").addEventListener("click", onLogClick);
     $("jump").addEventListener("click", function () { $("form-panel").scrollIntoView({ behavior: "smooth", block: "start" }); });
     ["f-entry", "f-stop", "f-exit", "f-r"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
+    initCardUI();
     $("export").addEventListener("click", exportCsv);
     $("backup").addEventListener("click", backupJson);
     $("import").addEventListener("click", function () { $("import-file").click(); });
