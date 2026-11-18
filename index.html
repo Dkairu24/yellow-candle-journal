@@ -75,6 +75,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .banner { border: 1px solid var(--line-2); background: var(--panel); padding: 12px 16px; border-radius: 10px; color: var(--muted); }
 .banner[hidden] { display: none; }
 
+/* filters */
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; border: 1px solid var(--line-2); background: var(--panel); border-radius: 12px; padding: 14px 16px; }
+.filters.on { border-color: var(--yellow); }
+.filters .field { flex: 1 1 130px; }
+.filters .field[hidden] { display: none; }
+.filters .f-end { display: flex; align-items: center; gap: 12px; flex: 1 1 100%; justify-content: space-between; }
+#flt-summary { color: var(--muted); font-size: 13px; }
+.filters.on #flt-summary { color: var(--yellow); }
+
 /* stats */
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .stat { background: var(--panel); padding: 18px 18px 16px; min-width: 0; }
@@ -231,6 +240,17 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   </header>
 
   <div class="banner" id="status" role="status">Your trades are saved in this browser, on this device only. Press Backup now and then so nothing is lost.</div>
+
+  <section class="filters" id="filters" aria-label="Filters">
+    <div class="field"><label for="flt-period">Period</label><select id="flt-period"><option value="all">All time</option><option value="week">This week</option><option value="lastweek">Last week</option><option value="month">This month</option><option value="lastmonth">Last month</option><option value="last30">Last 30 days</option><option value="custom">Pick dates</option></select></div>
+    <div class="field" id="flt-from-f" hidden><label for="flt-from">From</label><input id="flt-from" type="date"></div>
+    <div class="field" id="flt-to-f" hidden><label for="flt-to">To</label><input id="flt-to" type="date"></div>
+    <div class="field"><label for="flt-pair">Pair</label><select id="flt-pair"><option value="">All pairs</option></select></div>
+    <div class="field"><label for="flt-dir">Side</label><select id="flt-dir"><option value="">All</option><option value="Long">Long</option><option value="Short">Short</option></select></div>
+    <div class="field"><label for="flt-tf">Timeframe</label><select id="flt-tf"><option value="">All timeframes</option></select></div>
+    <div class="field"><label for="flt-grade">Setup score</label><select id="flt-grade"><option value="">All</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="none">No score</option></select></div>
+    <div class="f-end"><span id="flt-summary" aria-live="polite"></span><button class="btn small" id="flt-clear" type="button" hidden>Clear filters</button></div>
+  </section>
 
   <section class="stats" id="stats" aria-label="Summary"></section>
 
@@ -496,8 +516,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   }
 
   /* ---------- stats ---------- */
-  function sorted() {
-    return trades.slice().sort(function (a, b) {
+  function sorted(list) {
+    return (list || trades).slice().sort(function (a, b) {
       if (a.date !== b.date) return a.date < b.date ? -1 : 1;
       return (a.created || 0) - (b.created || 0);
     });
@@ -510,7 +530,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       if (t.r < 0) gl += -t.r;
     });
     var cum = 0, peak = 0, dd = 0;
-    sorted().forEach(function (t) {
+    sorted(list).forEach(function (t) {
       cum += t.r;
       if (cum > peak) peak = cum;
       if (peak - cum > dd) dd = peak - cum;
@@ -528,7 +548,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     };
   }
   function renderStats() {
-    var st = computeStats(trades);
+    var st = computeStats(view());
     var box = $("stats");
     clear(box);
     function tile(label, valueText, cls, hint, lead) {
@@ -558,9 +578,9 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   function renderCurve() {
     var wrap = $("curve-wrap");
     clear(wrap);
-    var list = sorted();
+    var list = sorted(view());
     if (!list.length) {
-      wrap.appendChild(h("div", "empty", "No trades yet. Your equity curve draws itself as you log trades."));
+      wrap.appendChild(h("div", "empty", trades.length ? "No trades match these filters." : "No trades yet. Your equity curve draws itself as you log trades."));
       return;
     }
     var W = 800, H = 280, L = 54, R = 56, T = 18, B = 34;
@@ -614,15 +634,16 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   function renderBreakdown() {
     var box = $("breakdown");
     clear(box);
-    if (!trades.length) {
-      box.appendChild(h("div", "empty", "Tag your trades and the patterns appear here: which setups pay, which ones cost you."));
+    var vlist = view();
+    if (!vlist.length) {
+      box.appendChild(h("div", "empty", trades.length ? "No trades match these filters." : "Tag your trades and the patterns appear here: which setups pay, which ones cost you."));
       return;
     }
     var cards = h("div", "cards");
     var made = 0;
     GROUPS.forEach(function (g) {
       var key = g[1], map = {}, order = [];
-      trades.forEach(function (t) {
+      vlist.forEach(function (t) {
         var raw = key === "grade" ? gradeOf(t) : t[key];
         var vals = Array.isArray(raw) ? raw : [raw];
         vals.forEach(function (v) {
@@ -669,12 +690,13 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   function renderLog() {
     var box = $("log");
     clear(box);
-    $("log-sub").textContent = trades.length ? trades.length + (trades.length === 1 ? " trade" : " trades") + ", newest first" : "";
-    if (!trades.length) {
-      box.appendChild(h("div", "empty", loaded ? "No trades yet. Log your first one above." : "Loading..."));
+    var vl = view();
+    $("log-sub").textContent = vl.length ? vl.length + (vl.length === 1 ? " trade" : " trades") + ", newest first" : "";
+    if (!vl.length) {
+      box.appendChild(h("div", "empty", trades.length ? "No trades match these filters." : loaded ? "No trades yet. Log your first one above." : "Loading..."));
       return;
     }
-    var list = sorted().reverse();
+    var list = sorted(vl).reverse();
     var wrap = h("div", "table-scroll");
     var table = h("table");
     var thead = h("thead");
@@ -732,6 +754,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   }
 
   function renderAll() {
+    populateFilters();
+    renderFilterSummary();
     renderStats();
     renderCurve();
     renderBreakdown();
@@ -918,8 +942,107 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   function buildCsv() {
     var cols = ["date", "pair", "dir", "tf", "entry", "stop", "exit", "r", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "chkS", "chkN", "mood", "link", "notes"];
     var lines = [cols.join(",")];
-    sorted().forEach(function (t) { lines.push(cols.map(function (c) { return csvCell(t[c]); }).join(",")); });
+    sorted(view()).forEach(function (t) { lines.push(cols.map(function (c) { return csvCell(t[c]); }).join(",")); });
     return lines.join("\n");
+  }
+
+  /* ---------- filters (change what the stats, curve, patterns and log show) ---------- */
+  var FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "" };
+  var TF_ORDER = ["1m", "3m", "5m", "15m", "30m", "1h", "4h"];
+
+  function fRange() {
+    var p = FILTER.period;
+    if (p === "all") return null;
+    if (p === "custom") return [FILTER.from || "0000-00-00", FILTER.to || "9999-99-99"];
+    if (p === "last30") {
+      var now = new Date();
+      var e = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var s = new Date(e);
+      s.setDate(e.getDate() - 29);
+      return [isoOf(s), isoOf(e)];
+    }
+    var r = periodRange(p);
+    return [r[0], r[1]];
+  }
+  function filtersActive() {
+    return FILTER.period !== "all" || !!FILTER.pair || !!FILTER.dir || !!FILTER.tf || !!FILTER.grade;
+  }
+  function view() {
+    var r = fRange();
+    return trades.filter(function (t) {
+      if (r && (t.date < r[0] || t.date > r[1])) return false;
+      if (FILTER.pair && t.pair !== FILTER.pair) return false;
+      if (FILTER.dir && t.dir !== FILTER.dir) return false;
+      if (FILTER.tf && t.tf !== FILTER.tf) return false;
+      if (FILTER.grade === "none") { if (gradeOf(t)) return false; }
+      else if (FILTER.grade && gradeOf(t) !== FILTER.grade) return false;
+      return true;
+    });
+  }
+  function fillSelect(id, values, allLabel, key) {
+    var sel = $(id);
+    var keep = FILTER[key];
+    clear(sel);
+    var first = h("option", "", allLabel);
+    first.value = "";
+    sel.appendChild(first);
+    values.forEach(function (v) {
+      var o = h("option", "", v);
+      o.value = v;
+      sel.appendChild(o);
+    });
+    if (keep && values.indexOf(keep) < 0) { FILTER[key] = ""; keep = ""; }
+    sel.value = keep || "";
+  }
+  function populateFilters() {
+    var pairs = {}, tfs = {};
+    trades.forEach(function (t) {
+      if (t.pair) pairs[t.pair] = true;
+      if (t.tf) tfs[t.tf] = true;
+    });
+    fillSelect("flt-pair", Object.keys(pairs).sort(), "All pairs", "pair");
+    fillSelect("flt-tf", Object.keys(tfs).sort(function (a, b) {
+      var ia = TF_ORDER.indexOf(a), ib = TF_ORDER.indexOf(b);
+      if (ia < 0) ia = 99;
+      if (ib < 0) ib = 99;
+      return ia - ib || (a < b ? -1 : 1);
+    }), "All timeframes", "tf");
+    $("flt-period").value = FILTER.period;
+    $("flt-dir").value = FILTER.dir;
+    $("flt-grade").value = FILTER.grade;
+    $("flt-from-f").hidden = FILTER.period !== "custom";
+    $("flt-to-f").hidden = FILTER.period !== "custom";
+    $("flt-from").value = FILTER.from;
+    $("flt-to").value = FILTER.to;
+  }
+  function renderFilterSummary() {
+    var total = trades.length;
+    var shown = view().length;
+    var active = filtersActive();
+    $("flt-summary").textContent = active
+      ? "Showing " + shown + " of " + total + (total === 1 ? " trade" : " trades")
+      : total + (total === 1 ? " trade" : " trades") + " in your journal";
+    $("flt-clear").hidden = !active;
+    $("filters").classList.toggle("on", active);
+  }
+  function initFilterUI() {
+    [["flt-pair", "pair"], ["flt-dir", "dir"], ["flt-tf", "tf"], ["flt-grade", "grade"]].forEach(function (p) {
+      $(p[0]).addEventListener("change", function (e) { FILTER[p[1]] = e.target.value; renderAll(); });
+    });
+    $("flt-period").addEventListener("change", function (e) {
+      FILTER.period = e.target.value;
+      if (FILTER.period === "custom" && !FILTER.from) {
+        FILTER.from = periodRange("month")[0];
+        FILTER.to = todayIso();
+      }
+      renderAll();
+    });
+    $("flt-from").addEventListener("change", function (e) { FILTER.from = e.target.value; renderAll(); });
+    $("flt-to").addEventListener("change", function (e) { FILTER.to = e.target.value; renderAll(); });
+    $("flt-clear").addEventListener("click", function () {
+      FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "" };
+      renderAll();
+    });
   }
 
   /* ---------- pre-trade checklist (your rules, saved in this browser) ---------- */
@@ -2045,7 +2168,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
   function exportCsv() {
-    if (!trades.length) { toast("Nothing to export yet"); return; }
+    if (!view().length) { toast(trades.length ? "No trades match the filters" : "Nothing to export yet"); return; }
     saveFile("yellow-candle-journal-" + todayIso() + ".csv", "text/csv", buildCsv());
     toast("CSV saved");
   }
@@ -2093,6 +2216,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     initImportUI();
     initRecapUI();
     initCheckUI();
+    initFilterUI();
     $("export").addEventListener("click", exportCsv);
     $("backup").addEventListener("click", backupJson);
     $("import").addEventListener("click", function () { $("import-file").click(); });
