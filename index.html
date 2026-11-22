@@ -188,6 +188,8 @@ input[type="file"] { border: 0; background: none; padding: 4px 0; color: var(--m
 input[type="file"]::file-selector-button { background: var(--yellow); color: var(--on-gold); border: 1px solid var(--yellow); border-radius: 999px; padding: 8px 16px; margin-right: 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
 input[type="file"]::file-selector-button:hover { background: var(--yellow-hover); border-color: var(--yellow-hover); }
 input::placeholder, textarea::placeholder { color: #6b695f; }
+#f-tags::-webkit-calendar-picker-indicator { display: none !important; }
+#f-tags::-webkit-list-button { display: none !important; }
 textarea { min-height: 84px; resize: vertical; }
 .span-2 { grid-column: span 2; }
 .wide { grid-column: 1 / -1; }
@@ -643,7 +645,7 @@ body.modal-open, body.drawer-open { overflow: hidden; }
           <div class="field wide"><label for="f-tags">Your own tags (separate with commas)</label><input id="f-tags" type="text" list="tag-list" maxlength="120" placeholder="news day, london open, A+ entry"><datalist id="tag-list"></datalist></div>
           <div class="field wide"><label for="f-shot">Chart screenshot</label><input id="f-shot" type="file" accept="image/*"><div class="shot-hint">Or press Ctrl+V / Cmd+V anywhere on the page to paste one. It is stored in this browser and included when you press Backup.</div><div id="shot-prev" hidden></div></div>
           <div class="field wide"><label for="f-link">Chart snapshot link</label><input id="f-link" type="url" placeholder="https://www.tradingview.com/x/..."></div>
-          <div class="field wide"><label for="f-notes">Notes: what would you change?</label><textarea id="f-notes" placeholder="What the zone looked like, what price did, what you would do differently."></textarea></div>
+          <div class="field wide"><label for="f-notes">Notes</label><textarea id="f-notes" placeholder="Anything worth remembering about this trade."></textarea></div>
         </div>
       </div>
       <div class="form-actions">
