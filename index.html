@@ -148,7 +148,7 @@ svg.curve, svg.daily { width: 100%; height: auto; display: block; }
 @media (max-width: 560px) { .cal-c { min-height: 52px; padding: 4px 5px; } .cal-r { font-size: 11px; } .cal-n { display: none; } }
 
 /* discipline check: plain rows with a dot */
-.ins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 48px; }
+.ins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 0 48px; }
 .ins { position: relative; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 18px 0 18px 24px; background: none; min-width: 0; }
 .ins::before { content: ""; position: absolute; left: 0; top: 25px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .ins.warn::before { background: var(--loss); }
@@ -198,7 +198,7 @@ textarea { min-height: 84px; resize: vertical; }
 .form-error { color: var(--loss); font-size: 13px; }
 
 /* patterns: ranked rows with a centre line */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 48px 64px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 48px 64px; }
 .bcard { border: 0; border-radius: 0; padding: 0; background: none; min-width: 0; }
 .bcard h3 { font-size: 16px; letter-spacing: -0.01em; text-transform: none; color: var(--fg); margin-bottom: 8px; font-weight: 600; }
 .brow { display: grid; grid-template-columns: minmax(104px, 1.2fr) 2fr auto; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
@@ -358,6 +358,46 @@ body { overflow-x: clip; }
   .stat .value { font-size: 22px; }
   .ring { position: static; margin-top: 16px; }
 }
+body.modal-open { overflow: hidden; }
+.cal-r .short { display: none; }
+@media (max-width: 900px) {
+  .table-scroll { overflow: visible; }
+  table { min-width: 0; display: block; }
+  thead { display: none; }
+  tbody { display: block; }
+  tbody tr { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 14px; align-items: center; padding: 18px 0; border-top: 1px solid var(--line); }
+  tr:hover td { background: none; }
+  td { display: block; padding: 0; border: 0; }
+  td:nth-child(1) { grid-column: 1; grid-row: 1; color: var(--muted); white-space: nowrap; }
+  td:nth-child(2) { grid-column: 2; grid-row: 1; font-weight: 600; }
+  td:nth-child(6) { grid-column: 3; grid-row: 1; justify-self: end; }
+  td:nth-child(3) { grid-column: 1; grid-row: 2; }
+  td:nth-child(4) { grid-column: 2; grid-row: 2; color: var(--muted); }
+  td:nth-child(8) { grid-column: 3; grid-row: 2; justify-self: end; }
+  td:nth-child(5) { grid-column: 1 / -1; grid-row: 3; margin-top: 6px; }
+  td:nth-child(7) { grid-column: 1 / -1; grid-row: 4; margin-top: 4px; }
+  td:nth-child(9) { grid-column: 1 / -1; grid-row: 5; margin-top: 6px; }
+}
+@media (max-width: 560px) {
+  .curve text, .daily text { font-size: 21px; }
+  .curve .end-label { font-size: 24px; }
+  .btn.small { min-height: 36px; }
+  .cal-nav h3 { flex: 1 1 100%; margin: 0 0 4px; }
+  .cal-r .full { display: none; }
+  .cal-r .short { display: inline; }
+  .cal-grid { gap: 3px; }
+  .cal-c { padding: 4px 4px; }
+  .cal-r { font-size: 10.5px; white-space: nowrap; overflow-wrap: normal; }
+  .cal-d { font-size: 10.5px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
+  .grid .field:has(.seg), .grid .field.wide, .grid .span-2 { grid-column: 1 / -1; }
+  .check-score .row { gap: 4px !important; }
+  .check-score .row .btn:not(.primary) { padding: 8px 8px; font-size: 12px; }
+  .check-score .row .btn.primary { padding: 9px 16px; font-size: 13px; }
+  .brow { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; }
+  .brow .meta { order: 2; }
+  .brow .bar { order: 3; grid-column: 1 / -1; }
+}
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
 </style>
 </head>
@@ -462,10 +502,10 @@ body { overflow-x: clip; }
     <div class="field"><label for="flt-period">Period</label><select id="flt-period"><option value="all">All time</option><option value="week">This week</option><option value="lastweek">Last week</option><option value="month">This month</option><option value="lastmonth">Last month</option><option value="last30">Last 30 days</option><option value="custom">Pick dates</option></select></div>
     <div class="field" id="flt-from-f" hidden><label for="flt-from">From</label><input id="flt-from" type="date"></div>
     <div class="field" id="flt-to-f" hidden><label for="flt-to">To</label><input id="flt-to" type="date"></div>
-    <div class="field"><label for="flt-pair">Pair</label><select id="flt-pair"><option value="">All pairs</option></select></div>
+    <div class="field"><label for="flt-pair">Pair</label><select id="flt-pair"><option value="">All</option></select></div>
     <div class="field"><label for="flt-dir">Side</label><select id="flt-dir"><option value="">All</option><option value="Long">Long</option><option value="Short">Short</option></select></div>
-    <div class="field"><label for="flt-tf">Timeframe</label><select id="flt-tf"><option value="">All timeframes</option></select></div>
-    <div class="field"><label for="flt-tag">Your tag</label><select id="flt-tag"><option value="">All tags</option></select></div>
+    <div class="field"><label for="flt-tf">Timeframe</label><select id="flt-tf"><option value="">All</option></select></div>
+    <div class="field"><label for="flt-tag">Your tag</label><select id="flt-tag"><option value="">All</option></select></div>
     <div class="field"><label for="flt-grade">Setup score</label><select id="flt-grade"><option value="">All</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="none">No score</option></select></div>
     <div class="f-end"><span id="flt-summary" aria-live="polite"></span><button class="btn small" id="flt-clear" type="button" hidden>Clear filters</button></div>
   </section>
@@ -1414,14 +1454,14 @@ body { overflow-x: clip; }
     var dl = $("tag-list");
     clear(dl);
     allTags().forEach(function (x) { var o = document.createElement("option"); o.value = x; dl.appendChild(o); });
-    fillSelect("flt-tag", allTags(), "All tags", "tag");
-    fillSelect("flt-pair", Object.keys(pairs).sort(), "All pairs", "pair");
+    fillSelect("flt-tag", allTags(), "All", "tag");
+    fillSelect("flt-pair", Object.keys(pairs).sort(), "All", "pair");
     fillSelect("flt-tf", Object.keys(tfs).sort(function (a, b) {
       var ia = TF_ORDER.indexOf(a), ib = TF_ORDER.indexOf(b);
       if (ia < 0) ia = 99;
       if (ib < 0) ib = 99;
       return ia - ib || (a < b ? -1 : 1);
-    }), "All timeframes", "tf");
+    }), "All", "tf");
     $("flt-period").value = FILTER.period;
     $("flt-dir").value = FILTER.dir;
     $("flt-grade").value = FILTER.grade;
@@ -1504,7 +1544,10 @@ body { overflow-x: clip; }
       var cell = h("div", "cal-c" + (info ? (info.r > 0 ? " win" : info.r < 0 ? " loss" : " flat") : "") + (iso === todayIso() ? " today" : ""));
       cell.appendChild(h("span", "cal-d", String(d)));
       if (info) {
-        cell.appendChild(h("span", "cal-r num", fmtR(info.r)));
+        var rr = h("span", "cal-r num");
+        rr.appendChild(h("span", "full", fmtR(info.r)));
+        rr.appendChild(h("span", "short", (info.r > 0 ? "+" : info.r < 0 ? "\u2212" : "") + Math.abs(info.r).toFixed(1)));
+        cell.appendChild(rr);
         cell.appendChild(h("span", "cal-n", info.n + (info.n === 1 ? " trade" : " trades")));
         cell.title = fmtDate(iso) + ": " + fmtR(info.r) + " from " + info.n + (info.n === 1 ? " trade" : " trades");
       }
@@ -1971,6 +2014,8 @@ body { overflow-x: clip; }
         else acctMsg("Check your email and press the confirmation link, then come back and sign in.");
       }).catch(function () { acctMsg("Could not reach the sign-in service.", true); });
     });
+    $("acct-email-in").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("acct-pw").focus(); } });
+    $("acct-pw").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("acct-signin").click(); } });
     $("acct-reset").addEventListener("click", function () {
       var email = $("acct-email-in").value.trim();
       if (!email) { acctMsg("Type your email above first.", true); return; }
@@ -2038,7 +2083,16 @@ body { overflow-x: clip; }
   var REDUCE = false;
   try { REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { /* motion stays on */ }
   var motionSig = "";
+  var settleTimer = null;
   var lastVals = {};
+  var motionAnims = [];
+  var landingAnims = [];
+  function tracked(an, list) {
+    return { stagger: an.stagger, animate: function () { var a = an.animate.apply(an, arguments); list.push(a); return a; } };
+  }
+  function finishAll(list) {
+    list.splice(0).forEach(function (a) { try { if (a.complete) a.complete(); } catch (e) { /* already done */ } });
+  }
   function A() { return !REDUCE && window.anime && window.anime.animate ? window.anime : null; }
   function updateGlow() {
     var g = $("glow");
@@ -2058,6 +2112,7 @@ body { overflow-x: clip; }
       lastVals[key] = target;
       if (from === target) return;
       var o = { v: from };
+      el.setAttribute("data-final", txt);
       el.textContent = sign + from.toFixed(dec) + suf;
       an.animate(o, {
         v: target, duration: first ? 900 : 450, ease: "outExpo",
@@ -2078,8 +2133,9 @@ body { overflow-x: clip; }
     var changed = sig !== motionSig;
     motionSig = sig;
     updateGlow();
-    var an = A();
-    if (!an || !changed) return;
+    var rawAn = A();
+    if (!rawAn || !changed) return;
+    var an = tracked(rawAn, motionAnims);
     countUp(an, first);
     var line = document.querySelector("#curve-wrap polyline.line");
     if (line && line.getTotalLength) {
@@ -2097,6 +2153,12 @@ body { overflow-x: clip; }
     reveal(an, ".cal-c:not(.blank)", 450);
     reveal(an, "#breakdown .cards > *", 400);
     reveal(an, "#log tbody tr", 450);
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(function () {
+      finishAll(motionAnims);
+      document.querySelectorAll(".ins, .cal-c, #breakdown .cards > *, #log tbody tr, #daily-wrap rect").forEach(function (e) { e.style.opacity = ""; e.style.transform = ""; });
+      document.querySelectorAll("#stats .stat .value[data-final]").forEach(function (e) { e.textContent = e.getAttribute("data-final"); });
+    }, 4500);
   }
   function initNav() {
     var links = [].slice.call(document.querySelectorAll("#nav a"));
@@ -2116,10 +2178,18 @@ body { overflow-x: clip; }
   }
   function initMotion() {
     initNav();
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      var open = document.querySelector(".modal:not([hidden])");
+      if (!open) return;
+      var b = open.querySelector(".modal-head .btn");
+      if (b) b.click(); else open.hidden = true;
+    });
     document.querySelectorAll(".modal").forEach(function (m) {
       new MutationObserver(function () {
         var an = A();
         var box = m.querySelector(".modal-box");
+        document.body.classList.toggle("modal-open", [].some.call(document.querySelectorAll(".modal"), function (x) { return !x.hidden; }));
         if (!m.hidden && an && box) an.animate(box, { opacity: [0, 1], translateY: [14, 0], duration: 260, ease: "outCubic" });
       }).observe(m, { attributes: true, attributeFilter: ["hidden"] });
     });
@@ -2138,6 +2208,7 @@ body { overflow-x: clip; }
     if (!m) return;
     var sign = m[1], target = parseFloat(m[2]), dec = (m[2].split(".")[1] || "").length, suf = m[3];
     var o = { v: 0 };
+    el.setAttribute("data-final", txt);
     el.textContent = sign + (0).toFixed(dec) + suf;
     an.animate(o, {
       v: target, duration: dur, delay: delay || 0, ease: "outExpo",
@@ -2145,11 +2216,16 @@ body { overflow-x: clip; }
       onComplete: function () { el.textContent = txt; }
     });
   }
+  var lpSettleTimer = null;
+  function lpSettle() {
+    clearTimeout(lpSettleTimer);
+    lpSettleTimer = setTimeout(function () { finishAll(landingAnims); }, 4500);
+  }
   function onView(el, cb) {
     if (!el) return;
-    if (!window.IntersectionObserver) { cb(); return; }
+    if (!window.IntersectionObserver) { cb(); lpSettle(); return; }
     var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); cb(); } });
+      es.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); cb(); lpSettle(); } });
     }, { threshold: 0.18 });
     io.observe(el);
   }
@@ -2187,9 +2263,10 @@ body { overflow-x: clip; }
     }
   }
   function startLanding() {
-    var an = A();
+    var rawAn = A();
     var L = $("landing");
-    if (!an || !L) return;
+    if (!rawAn || !L) return;
+    var an = tracked(rawAn, landingAnims);
     L.classList.add("lp-js");
     an.animate("#landing .lp-pill, #landing .lp-hero h1, #landing .lp-hero p", { opacity: [0, 1], translateY: [20, 0], duration: 900, delay: an.stagger(140), ease: "outCubic" });
     var card = L.querySelector(".lp-preview");
@@ -2200,8 +2277,8 @@ body { overflow-x: clip; }
     onView(L.querySelector(".lp-final"), function () {
       an.animate("#landing .lp-final", { opacity: [0, 1], translateY: [22, 0], duration: 800, ease: "outCubic" });
     });
-    auraAnim = an.animate("#landing .lp-aura", { scale: [1, 1.14], opacity: [0.45, 0.85], duration: 5200, ease: "inOutSine", loop: true, alternate: true });
-    setTimeout(function () { L.classList.remove("lp-js"); }, 12000);
+    auraAnim = rawAn.animate("#landing .lp-aura", { scale: [1, 1.14], opacity: [0.45, 0.85], duration: 5200, ease: "inOutSine", loop: true, alternate: true });
+    lpSettle();
   }
   function updateLanding() {
     var L = $("landing"), W = document.querySelector(".wrap");
