@@ -110,6 +110,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ins.good .ins-t { color: var(--yellow); }
 .ins-x { color: var(--muted); font-size: 13px; line-height: 1.45; }
 
+/* backlight glow behind the result */
+.glow-wrap { position: relative; height: 0; z-index: 0; pointer-events: none; clip-path: inset(-260px 0 -260px 0); }
+.glow { position: absolute; left: 0; top: -50px; width: 560px; max-width: 100%; height: 320px; border-radius: 50%; filter: blur(80px); opacity: 0; transition: opacity 0.9s ease, background 0.9s ease; }
+.glow.gain { background: rgba(255, 212, 0, 0.2); opacity: 1; }
+.glow.loss { background: rgba(255, 255, 255, 0.1); opacity: 1; }
+.stats { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .glow { transition: none; } }
+
 /* account */
 #acct-btn { min-width: 84px; }
 .modal-box.acct-box { max-width: 400px; margin: 12vh auto 24px; padding: 26px 26px 22px; }
@@ -297,6 +305,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     <div class="f-end"><span id="flt-summary" aria-live="polite"></span><button class="btn small" id="flt-clear" type="button" hidden>Clear filters</button></div>
   </section>
 
+  <div class="glow-wrap" aria-hidden="true"><div class="glow off" id="glow"></div></div>
   <section class="stats" id="stats" aria-label="Summary"></section>
 
   <section class="panel" id="ins-panel">
@@ -542,6 +551,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.0.2/lib/anime.umd.min.js"></script>
 <script>
 (function () {
   "use strict";
@@ -866,6 +876,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     renderCalendar();
     renderBreakdown();
     renderLog();
+    runMotion();
   }
 
   /* ---------- form ---------- */
@@ -1753,6 +1764,79 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       if (!document.hidden && sbUser && Date.now() - lastSync > 30000) scheduleSync(300);
     });
     setSyncText("Not signed in");
+  }
+
+  /* ---------- motion (anime.js; switched off when the device asks for reduced motion) ---------- */
+  var REDUCE = false;
+  try { REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { /* motion stays on */ }
+  var motionSig = "";
+  var lastVals = {};
+  function A() { return !REDUCE && window.anime && window.anime.animate ? window.anime : null; }
+  function updateGlow() {
+    var g = $("glow");
+    if (!g) return;
+    var l = view();
+    var t = sumR(l);
+    g.className = "glow " + (!l.length ? "off" : t > 0 ? "gain" : t < 0 ? "loss" : "off");
+  }
+  function countUp(an, first) {
+    document.querySelectorAll("#stats .stat .value").forEach(function (el) {
+      var txt = el.textContent;
+      var m = /^([+−-]?)(\d+(?:\.\d+)?)(.*)$/.exec(txt);
+      var key = el.parentNode.firstChild.textContent;
+      if (!m) { delete lastVals[key]; return; }
+      var sign = m[1], target = parseFloat(m[2]), dec = (m[2].split(".")[1] || "").length, suf = m[3];
+      var from = first ? 0 : (lastVals[key] !== undefined ? lastVals[key] : 0);
+      lastVals[key] = target;
+      if (from === target) return;
+      var o = { v: from };
+      el.textContent = sign + from.toFixed(dec) + suf;
+      an.animate(o, {
+        v: target, duration: first ? 900 : 450, ease: "outExpo",
+        onUpdate: function () { el.textContent = sign + o.v.toFixed(dec) + suf; },
+        onComplete: function () { el.textContent = txt; }
+      });
+    });
+  }
+  function reveal(an, sel, total) {
+    var els = document.querySelectorAll(sel);
+    if (!els.length) return;
+    an.animate(els, { opacity: [0, 1], translateY: [8, 0], duration: 420, delay: an.stagger(Math.min(40, total / els.length)), ease: "outQuad" });
+  }
+  function runMotion() {
+    var l = view();
+    var sig = l.length + "|" + sumR(l).toFixed(3) + "|" + JSON.stringify(FILTER);
+    var first = motionSig === "";
+    var changed = sig !== motionSig;
+    motionSig = sig;
+    updateGlow();
+    var an = A();
+    if (!an || !changed) return;
+    countUp(an, first);
+    var line = document.querySelector("#curve-wrap polyline.line");
+    if (line && line.getTotalLength) {
+      var len = line.getTotalLength();
+      line.style.strokeDasharray = len;
+      an.animate(line, {
+        strokeDashoffset: [len, 0], duration: first ? 1100 : 600, ease: "outCubic",
+        onComplete: function () { line.style.strokeDasharray = ""; line.style.strokeDashoffset = ""; }
+      });
+      an.animate("#curve-wrap svg path", { opacity: [0, 1], duration: 700, delay: 250, ease: "outQuad" });
+      an.animate("#curve-wrap svg circle", { opacity: [0, 1], duration: 300, delay: an.stagger(25, { start: 500 }) });
+    }
+    reveal(an, ".ins", 300);
+    reveal(an, ".cal-c:not(.blank)", 450);
+    reveal(an, "#breakdown .cards > *", 400);
+    reveal(an, "#log tbody tr", 450);
+  }
+  function initMotion() {
+    document.querySelectorAll(".modal").forEach(function (m) {
+      new MutationObserver(function () {
+        var an = A();
+        var box = m.querySelector(".modal-box");
+        if (!m.hidden && an && box) an.animate(box, { opacity: [0, 1], translateY: [14, 0], duration: 260, ease: "outCubic" });
+      }).observe(m, { attributes: true, attributeFilter: ["hidden"] });
+    });
   }
 
   /* ---------- pre-trade checklist (your rules, saved in this browser) ---------- */
@@ -2954,6 +3038,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     initFilterUI();
     initShotUI();
     initSync();
+    initMotion();
     initCalendarUI();
     $("export").addEventListener("click", exportCsv);
     $("backup").addEventListener("click", backupJson);
