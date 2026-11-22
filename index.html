@@ -2079,6 +2079,9 @@ body { overflow-x: clip; }
       });
     }, { rootMargin: "-20% 0px -70% 0px" });
     targets.forEach(function (t) { if (t) io.observe(t); });
+    window.addEventListener("scroll", function () {
+      if (window.scrollY < 140) links.forEach(function (a, j) { a.classList.toggle("on", j === 0); });
+    }, { passive: true });
   }
   function initMotion() {
     initNav();
