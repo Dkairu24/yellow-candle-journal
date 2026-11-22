@@ -6,10 +6,10 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0E0E0C">
 <title>Yellow Candle Journal</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 40'%3E%3Crect width='22' height='40' fill='black'/%3E%3Cline x1='11' y1='0' x2='11' y2='40' stroke='%23E0B93B' stroke-width='3'/%3E%3Crect x='2' y='9' width='18' height='22' fill='%23E0B93B'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 40'%3E%3Crect width='22' height='40' fill='black'/%3E%3Cline x1='11' y1='0' x2='11' y2='40' stroke='%23D8B44A' stroke-width='3'/%3E%3Crect x='2' y='9' width='18' height='22' fill='%23D8B44A'/%3E%3C/svg%3E">
 <style>
 /* The Yellow Candle journal. One typeface (the system font), warm black, gold for the brand,
-   TradingView green and red for money. No boxes: space and hairlines do the grouping. */
+   soft gold for wins and red for losses. No boxes: space and hairlines do the grouping. */
 :root {
   --bg: #0E0E0C;
   --panel: #141412;
@@ -18,10 +18,10 @@
   --line-2: #3a3932;
   --fg: #E9E5D8;
   --muted: #9B988A;
-  --gold: #E0B93B;
-  --gold-hover: #EAC95E;
-  --gain: #26A69A;
-  --loss: #EF5350;
+  --gold: #D8B44A;
+  --gold-hover: #E3C262;
+  --gain: #D8B44A;
+  --loss: #E2605B;
   --on-gold: #14110a;
   --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, "Segoe UI", Arial, sans-serif;
   color-scheme: dark;
@@ -94,8 +94,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* backlight glow behind the result */
 .glow-wrap { position: relative; height: 0; z-index: 0; pointer-events: none; clip-path: inset(-700px 0 -700px 0); overflow-x: clip; }
 .glow { position: absolute; left: 130px; top: -10px; width: 520px; max-width: 100%; height: 300px; border-radius: 50%; filter: blur(90px); opacity: 0; transition: opacity 0.9s ease, background 0.9s ease; }
-.glow.gain { background: rgba(38, 166, 154, 0.16); opacity: 1; }
-.glow.loss { background: rgba(239, 83, 80, 0.13); opacity: 1; }
+.glow.gain { background: rgba(216, 180, 74, 0.16); opacity: 1; }
+.glow.loss { background: rgba(226, 96, 91, 0.13); opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .glow { transition: none; } }
 
 /* result: one big figure, then plain figures under a hairline */
@@ -134,8 +134,8 @@ svg.curve, svg.daily { width: 100%; height: auto; display: block; }
 .cal-c { min-height: 64px; border: 0; border-radius: 8px; padding: 7px 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; background: transparent; }
 .cal-c.blank { background: none; }
 .cal-c.today { box-shadow: inset 0 0 0 1px var(--line-2); }
-.cal-c.win { background: rgba(38, 166, 154, 0.12); }
-.cal-c.loss { background: rgba(239, 83, 80, 0.12); }
+.cal-c.win { background: rgba(216, 180, 74, 0.12); }
+.cal-c.loss { background: rgba(226, 96, 91, 0.12); }
 .cal-c.flat { background: var(--line); }
 .cal-d { font-size: 12px; color: var(--muted); }
 .cal-r { font-weight: 600; font-size: 13px; text-align: right; overflow-wrap: anywhere; }
@@ -148,13 +148,13 @@ svg.curve, svg.daily { width: 100%; height: auto; display: block; }
 .ins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 48px; }
 .ins { position: relative; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 18px 0 18px 24px; background: none; min-width: 0; }
 .ins::before { content: ""; position: absolute; left: 0; top: 25px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-.ins.warn::before { background: var(--gold); }
-.ins.good::before { background: var(--gain); }
+.ins.warn::before { background: var(--loss); }
+.ins.good::before { background: var(--gold); }
 .ins-t { font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
 .ins-x { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .mistakes { margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
 .mistakes .lab { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
-.mistakes .chips .chip { color: var(--loss); background: rgba(239, 83, 80, 0.12); border: 0; padding: 4px 12px; border-radius: 999px; font-weight: 500; }
+.mistakes .chips .chip { color: var(--loss); background: rgba(226, 96, 91, 0.12); border: 0; padding: 4px 12px; border-radius: 999px; font-weight: 500; }
 
 /* screenshots */
 #shot-prev { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
@@ -275,9 +275,9 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .lp-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; position: relative; z-index: 2; }
 .lp-stage { position: relative; isolation: isolate; padding-bottom: 260px; }
 .lp-stage::before { content: ""; position: absolute; z-index: -1; left: 50%; width: 100vw; transform: translateX(-50%); top: -90px; bottom: 0;
-  background: radial-gradient(70% 38% at 50% 0%, rgba(224, 185, 59, 0.13), transparent 70%),
-    radial-gradient(80% 40% at 50% 100%, rgba(244, 212, 110, 0.8), transparent 74%),
-    linear-gradient(180deg, #0E0E0C 0%, #0E0E0C 30%, #261d08 50%, #5f4a12 68%, #a98524 84%, #dcb43a 94%, #e9c557 100%);
+  background: radial-gradient(70% 38% at 50% 0%, rgba(233, 229, 216, 0.06), transparent 70%),
+    radial-gradient(62% 42% at 50% 100%, rgba(240, 236, 224, 0.5), transparent 72%),
+    linear-gradient(180deg, #0E0E0C 0%, #0E0E0C 32%, #151513 52%, #1d1c19 68%, #282722 84%, #34322d 96%, #3c3a34 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 90%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 90%, transparent 100%); }
 body { overflow-x: clip; }
 .lp-pill { display: inline-block; font-size: 12px; color: var(--muted); border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 14px; margin-bottom: 26px; background: rgba(14, 14, 12, 0.6); }
@@ -297,7 +297,7 @@ body { overflow-x: clip; }
 .lp-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 40px 56px; margin-top: 48px; }
 .lp-charts h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
 .lp-result .ring { position: static; }
-.lp-aura { position: absolute; z-index: -1; left: 10%; width: 80%; bottom: 30px; height: 340px; border-radius: 50%; background: radial-gradient(closest-side, rgba(244, 212, 110, 0.55), transparent); filter: blur(30px); opacity: 0.55; pointer-events: none; }
+.lp-aura { position: absolute; z-index: -1; left: 10%; width: 80%; bottom: 30px; height: 340px; border-radius: 50%; background: radial-gradient(closest-side, rgba(233, 229, 216, 0.34), transparent); filter: blur(30px); opacity: 0.55; pointer-events: none; }
 .lp-js .lp-pill, .lp-js .lp-hero h1, .lp-js .lp-hero p, .lp-js .lp-preview, .lp-js .lp-point, .lp-js .lp-final { opacity: 0; }
 .lp-note { font-size: 12px; color: var(--muted); margin-top: 28px; }
 .lp-points { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 40px 40px; margin-top: 104px; }
@@ -305,13 +305,13 @@ body { overflow-x: clip; }
 .lp-point p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .lp-final { margin-top: 104px; }
 .lp-final-in { position: relative; overflow: hidden; text-align: center; border: 1px solid rgba(233, 229, 216, 0.12); border-radius: 28px; padding: 88px 24px 96px;
-  background: radial-gradient(75% 85% at 50% 125%, rgba(244, 212, 110, 0.5), transparent 70%), radial-gradient(60% 50% at 50% 0%, rgba(224, 185, 59, 0.08), transparent 70%), linear-gradient(180deg, #151513 0%, #0E0E0C 100%); }
+  background: radial-gradient(75% 85% at 50% 125%, rgba(233, 229, 216, 0.26), transparent 70%), radial-gradient(60% 50% at 50% 0%, rgba(233, 229, 216, 0.05), transparent 70%), linear-gradient(180deg, #151513 0%, #0E0E0C 100%); }
 .lp-final h2 { font-size: 40px; letter-spacing: -0.025em; font-weight: 600; max-width: 560px; line-height: 1.1; margin: 0 auto; }
 .lp-final p { color: var(--muted); font-size: 16px; margin: 16px auto 0; max-width: 420px; }
 .lp-final-cta { display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 36px; }
 .btn.big { padding: 15px 28px; font-size: 15px; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
-.btn.primary.big { box-shadow: 0 10px 40px rgba(224, 185, 59, 0.28); }
-.btn.primary.big:hover { transform: translateY(-2px); box-shadow: 0 14px 48px rgba(224, 185, 59, 0.4); }
+.btn.primary.big { box-shadow: 0 10px 40px rgba(216, 180, 74, 0.25); }
+.btn.primary.big:hover { transform: translateY(-2px); box-shadow: 0 14px 48px rgba(216, 180, 74, 0.4); }
 .btn.primary.big .arrow { display: inline-block; margin-left: 6px; transition: transform 0.2s ease; }
 .btn.primary.big:hover .arrow { transform: translateX(4px); }
 .btn.outline { border-color: rgba(233, 229, 216, 0.28); color: var(--fg); background: rgba(14, 14, 12, 0.5); }
@@ -354,7 +354,7 @@ body { overflow-x: clip; }
 <div class="landing" id="landing" hidden>
   <header class="lp-top">
     <div class="brand">
-      <svg width="22" height="40" viewBox="0 0 22 40" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="40" stroke="#E0B93B" stroke-width="3"/><rect x="2" y="9" width="18" height="22" fill="#E0B93B"/></svg>
+      <svg width="22" height="40" viewBox="0 0 22 40" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="40" stroke="#D8B44A" stroke-width="3"/><rect x="2" y="9" width="18" height="22" fill="#D8B44A"/></svg>
       <div><div class="brand-name">The Yellow Candle</div><div class="brand-sub">Trade journal</div></div>
     </div>
     <button class="btn" id="lp-signin-top" type="button">Sign in</button>
@@ -375,7 +375,7 @@ body { overflow-x: clip; }
         <div class="big num">+11.63R</div>
         <div style="color:var(--muted);font-size:13px;margin-top:8px">12 trades. 7 winners, 5 losers.</div>
       </div>
-      <div class="ring"><svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="#EF5350" stroke-width="6"/><circle cx="36" cy="36" r="30" fill="none" stroke="#26A69A" stroke-width="6" stroke-dasharray="109.9 188.5" transform="rotate(-90 36 36)"/><text x="36" y="41" text-anchor="middle" font-size="16" font-weight="600" fill="#E9E5D8" font-family="-apple-system, system-ui, sans-serif">58%</text></svg><div>win rate</div></div>
+      <div class="ring"><svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="#E2605B" stroke-width="6"/><circle cx="36" cy="36" r="30" fill="none" stroke="#D8B44A" stroke-width="6" stroke-dasharray="109.9 188.5" transform="rotate(-90 36 36)"/><text x="36" y="41" text-anchor="middle" font-size="16" font-weight="600" fill="#E9E5D8" font-family="-apple-system, system-ui, sans-serif">58%</text></svg><div>win rate</div></div>
     </div>
     <div class="lp-figs">
       <div><div class="l">Win rate</div><div class="v">58%</div></div>
@@ -385,8 +385,8 @@ body { overflow-x: clip; }
       <div><div class="l">Rules followed</div><div class="v">75%</div></div>
     </div>
     <div class="lp-charts">
-      <div><h3>Equity</h3><svg viewBox="0 0 1120 250" style="width:100%;height:auto;display:block" aria-hidden="true"><defs><linearGradient id="lpfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26A69A" stop-opacity=".25"/><stop offset="1" stop-color="#26A69A" stop-opacity="0"/></linearGradient></defs><line x1="0" y1="226" x2="1120" y2="226" stroke="#3a3932"/><path d="M0 226 L93.3 175 L186.7 192 L280 158 L373.3 138 L466.7 155 L560 172 L653.3 189 L746.7 92 L840 109 L933.3 83 L1026.7 46 L1120 28 L1120 226 Z" fill="url(#lpfill)"/><path d="M0 226 L93.3 175 L186.7 192 L280 158 L373.3 138 L466.7 155 L560 172 L653.3 189 L746.7 92 L840 109 L933.3 83 L1026.7 46 L1120 28" fill="none" stroke="#26A69A" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1120" cy="28" r="5" fill="#26A69A"/></svg></div>
-      <div><h3>Daily results</h3><svg viewBox="0 0 1120 140" style="width:100%;height:auto;display:block" aria-hidden="true"><line x1="0" y1="70" x2="1120" y2="70" stroke="#3a3932"/><rect x="4.0" y="43.0" width="46" height="27.0" rx="2" fill="#26A69A"/><rect x="105.8" y="70.0" width="46" height="9.0" rx="2" fill="#EF5350"/><rect x="207.6" y="52.0" width="46" height="18.0" rx="2" fill="#26A69A"/><rect x="309.4" y="59.2" width="46" height="10.8" rx="2" fill="#26A69A"/><rect x="411.2" y="70.0" width="46" height="9.0" rx="2" fill="#EF5350"/><rect x="513.0" y="70.0" width="46" height="18.0" rx="2" fill="#EF5350"/><rect x="614.8" y="18.4" width="46" height="51.6" rx="2" fill="#26A69A"/><rect x="716.6" y="70.0" width="46" height="9.0" rx="2" fill="#EF5350"/><rect x="818.4" y="56.5" width="46" height="13.5" rx="2" fill="#26A69A"/><rect x="920.2" y="50.2" width="46" height="19.8" rx="2" fill="#26A69A"/><rect x="1022.0" y="61.0" width="46" height="9.0" rx="2" fill="#26A69A"/></svg></div>
+      <div><h3>Equity</h3><svg viewBox="0 0 1120 250" style="width:100%;height:auto;display:block" aria-hidden="true"><defs><linearGradient id="lpfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D8B44A" stop-opacity=".25"/><stop offset="1" stop-color="#D8B44A" stop-opacity="0"/></linearGradient></defs><line x1="0" y1="226" x2="1120" y2="226" stroke="#3a3932"/><path d="M0 226 L93.3 175 L186.7 192 L280 158 L373.3 138 L466.7 155 L560 172 L653.3 189 L746.7 92 L840 109 L933.3 83 L1026.7 46 L1120 28 L1120 226 Z" fill="url(#lpfill)"/><path d="M0 226 L93.3 175 L186.7 192 L280 158 L373.3 138 L466.7 155 L560 172 L653.3 189 L746.7 92 L840 109 L933.3 83 L1026.7 46 L1120 28" fill="none" stroke="#D8B44A" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1120" cy="28" r="5" fill="#D8B44A"/></svg></div>
+      <div><h3>Daily results</h3><svg viewBox="0 0 1120 140" style="width:100%;height:auto;display:block" aria-hidden="true"><line x1="0" y1="70" x2="1120" y2="70" stroke="#3a3932"/><rect x="4.0" y="43.0" width="46" height="27.0" rx="2" fill="#D8B44A"/><rect x="105.8" y="70.0" width="46" height="9.0" rx="2" fill="#E2605B"/><rect x="207.6" y="52.0" width="46" height="18.0" rx="2" fill="#D8B44A"/><rect x="309.4" y="59.2" width="46" height="10.8" rx="2" fill="#D8B44A"/><rect x="411.2" y="70.0" width="46" height="9.0" rx="2" fill="#E2605B"/><rect x="513.0" y="70.0" width="46" height="18.0" rx="2" fill="#E2605B"/><rect x="614.8" y="18.4" width="46" height="51.6" rx="2" fill="#D8B44A"/><rect x="716.6" y="70.0" width="46" height="9.0" rx="2" fill="#E2605B"/><rect x="818.4" y="56.5" width="46" height="13.5" rx="2" fill="#D8B44A"/><rect x="920.2" y="50.2" width="46" height="19.8" rx="2" fill="#D8B44A"/><rect x="1022.0" y="61.0" width="46" height="9.0" rx="2" fill="#D8B44A"/></svg></div>
     </div>
     <div class="lp-note">Sample numbers, to show what the journal looks like.</div>
   </section>
@@ -419,7 +419,7 @@ body { overflow-x: clip; }
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <svg width="22" height="40" viewBox="0 0 22 40" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="40" stroke="#E0B93B" stroke-width="3"/><rect x="2" y="9" width="18" height="22" fill="#E0B93B"/></svg>
+      <svg width="22" height="40" viewBox="0 0 22 40" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="40" stroke="#D8B44A" stroke-width="3"/><rect x="2" y="9" width="18" height="22" fill="#D8B44A"/></svg>
       <div>
         <div class="brand-name">The Yellow Candle</div>
         <div class="brand-sub">Trade journal</div>
@@ -465,7 +465,7 @@ body { overflow-x: clip; }
   <section class="panel" id="ins-panel">
     <div class="panel-head">
       <h2>Discipline check</h2>
-      <span class="sub">Gold dot: pay attention. Green dot: what is working. Follows your filters.</span>
+      <span class="sub">Red dot: pay attention. Gold dot: what is working. Follows your filters.</span>
     </div>
     <div id="insights"></div>
   </section>
@@ -834,8 +834,8 @@ body { overflow-x: clip; }
       return c;
     }
     var full = 2 * Math.PI * 30;
-    svg.appendChild(circ(nLoss ? "#EF5350" : "#26A69A", "", false));
-    svg.appendChild(circ("#26A69A", (rate * full).toFixed(1) + " " + full.toFixed(1), true));
+    svg.appendChild(circ(nLoss ? "#E2605B" : "#D8B44A", "", false));
+    svg.appendChild(circ("#D8B44A", (rate * full).toFixed(1) + " " + full.toFixed(1), true));
     var tx = document.createElementNS(NS, "text");
     tx.setAttribute("x", "36"); tx.setAttribute("y", "41"); tx.setAttribute("text-anchor", "middle");
     tx.setAttribute("font-size", "16"); tx.setAttribute("font-weight", "600"); tx.setAttribute("fill", "#E9E5D8");
@@ -867,7 +867,7 @@ body { overflow-x: clip; }
       var v = by[d];
       var hgt = Math.max(Math.abs(v) * k, 1.5);
       var x0 = pad + slot * i + (slot - bw) / 2;
-      var r = s("rect", { x: x0.toFixed(1), y: (v >= 0 ? base - hgt : base).toFixed(1), width: bw.toFixed(1), height: hgt.toFixed(1), rx: 2, style: "fill:" + (v > 0 ? "#26A69A" : v < 0 ? "#EF5350" : "#8d8d88") });
+      var r = s("rect", { x: x0.toFixed(1), y: (v >= 0 ? base - hgt : base).toFixed(1), width: bw.toFixed(1), height: hgt.toFixed(1), rx: 2, style: "fill:" + (v > 0 ? "#D8B44A" : v < 0 ? "#E2605B" : "#8d8d88") });
       r.appendChild(s("title", {}, fmtDate(d) + ": " + fmtR(Math.round(v * 100) / 100)));
       svg.appendChild(r);
       if (i % every === 0 || i === n - 1) svg.appendChild(s("text", { x: (x0 + bw / 2).toFixed(1), y: H - 6, "text-anchor": "middle" }, String(parseInt(d.slice(8), 10))));
@@ -927,8 +927,8 @@ body { overflow-x: clip; }
     var svg = s("svg", { "class": "curve", viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Cumulative R after each trade" });
     var defs = s("defs", {});
     var grad = s("linearGradient", { id: "fillgrad", x1: "0", y1: "0", x2: "0", y2: "1" });
-    grad.appendChild(s("stop", { offset: "0", style: "stop-color:#26A69A;stop-opacity:0.28" }));
-    grad.appendChild(s("stop", { offset: "1", style: "stop-color:#26A69A;stop-opacity:0" }));
+    grad.appendChild(s("stop", { offset: "0", style: "stop-color:#D8B44A;stop-opacity:0.28" }));
+    grad.appendChild(s("stop", { offset: "1", style: "stop-color:#D8B44A;stop-opacity:0" }));
     defs.appendChild(grad);
     svg.appendChild(defs);
     for (var v = lo; v <= hi + step / 1000; v += step) {
@@ -948,7 +948,7 @@ body { overflow-x: clip; }
     }
     list.forEach(function (t, k) {
       var i = k + 1;
-      svg.appendChild(s("circle", { cx: x(i), cy: y(cum[i]), r: i === cum.length - 1 ? 5.5 : 3.5, fill: t.r > 0 ? "#26A69A" : t.r < 0 ? "#EF5350" : "#8d8d88" }));
+      svg.appendChild(s("circle", { cx: x(i), cy: y(cum[i]), r: i === cum.length - 1 ? 5.5 : 3.5, fill: t.r > 0 ? "#D8B44A" : t.r < 0 ? "#E2605B" : "#8d8d88" }));
     });
     var last = cum[cum.length - 1];
     svg.appendChild(s("text", { "class": "end-label", x: x(cum.length - 1) + 10, y: y(last) + 4 }, fmtR(last)));
@@ -1013,7 +1013,7 @@ body { overflow-x: clip; }
       box.appendChild(h("div", "empty", "None of your trades carry tags yet. Fill in the \"Why you took it\" section when you log."));
     } else {
       box.appendChild(cards);
-      box.appendChild(h("div", "note", "Each row: average R  |  win rate  |  number of trades. Green bars made money on average, red bars lost. A trade tagged with both BOS and CHOCH counts in each row."));
+      box.appendChild(h("div", "note", "Each row: average R  |  win rate  |  number of trades. Gold bars made money on average, red bars lost. A trade tagged with both BOS and CHOCH counts in each row."));
     }
   }
 
@@ -2412,19 +2412,19 @@ body { overflow-x: clip; }
     for (var i = 0; i < cum.length; i += every) ctx.fillText(i === 0 ? "Start" : "#" + i, xx(i), y + h - 18);
     if (cum.length > 1) {
       var grad = ctx.createLinearGradient(0, y + T, 0, y + h - B);
-      grad.addColorStop(0, "rgba(38,166,154,0.30)"); grad.addColorStop(1, "rgba(38,166,154,0)");
+      grad.addColorStop(0, "rgba(216,180,74,0.30)"); grad.addColorStop(1, "rgba(216,180,74,0)");
       ctx.beginPath(); ctx.moveTo(xx(0), yy(0));
       for (i = 0; i < cum.length; i++) ctx.lineTo(xx(i), yy(cum[i]));
       ctx.lineTo(xx(cum.length - 1), yy(0)); ctx.closePath();
       ctx.fillStyle = grad; ctx.fill();
       ctx.beginPath(); ctx.moveTo(xx(0), yy(cum[0]));
       for (i = 1; i < cum.length; i++) ctx.lineTo(xx(i), yy(cum[i]));
-      ctx.strokeStyle = "#26A69A"; ctx.lineWidth = 4; ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.stroke();
+      ctx.strokeStyle = "#D8B44A"; ctx.lineWidth = 4; ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.stroke();
     }
     list.forEach(function (t, k) {
       var j = k + 1;
       ctx.beginPath(); ctx.arc(xx(j), yy(cum[j]), j === cum.length - 1 ? 8 : 5, 0, Math.PI * 2);
-      ctx.fillStyle = t.r > 0 ? "#26A69A" : t.r < 0 ? "#EF5350" : "#8d8d88"; ctx.fill();
+      ctx.fillStyle = t.r > 0 ? "#D8B44A" : t.r < 0 ? "#E2605B" : "#8d8d88"; ctx.fill();
     });
     ctx.textAlign = "left"; ctx.fillStyle = accent; ctx.font = "700 24px " + BODY;
     ctx.fillText(fmtR(cum[cum.length - 1]), xx(cum.length - 1) + 16, yy(cum[cum.length - 1]) + 8);
@@ -2450,14 +2450,14 @@ body { overflow-x: clip; }
     var list = recapTrades(range);
     var st = listStats(list);
     RECAP.n = st.n;
-    var accent = st.total > 0.05 ? "#26A69A" : st.total < -0.05 ? "#EF5350" : "#8d8d88";
+    var accent = st.total > 0.05 ? "#D8B44A" : st.total < -0.05 ? "#E2605B" : "#8d8d88";
     ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = "#3a3a3a"; ctx.lineWidth = 2; ctx.strokeRect(24, 24, W - 48, H - 48);
 
     // header
-    ctx.strokeStyle = "#E0B93B"; ctx.lineWidth = 4;
+    ctx.strokeStyle = "#D8B44A"; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(81, 70); ctx.lineTo(81, 116); ctx.stroke();
-    ctx.fillStyle = "#E0B93B"; ctx.fillRect(72, 80, 18, 26);
+    ctx.fillStyle = "#D8B44A"; ctx.fillRect(72, 80, 18, 26);
     ctx.font = "700 34px " + DISPLAY; ctx.textBaseline = "alphabetic";
     spaced(ctx, "THE YELLOW CANDLE", 112, 105, 2, "left");
     ctx.fillStyle = "#969696"; ctx.font = "700 28px " + BODY;
@@ -2467,7 +2467,7 @@ body { overflow-x: clip; }
     var py = 150;
     ctx.font = "700 28px " + BODY;
     var pw = ctx.measureText(range[2]).width + 56;
-    ctx.fillStyle = "#E0B93B"; rr(ctx, 71, py, pw, 58, 29); ctx.fill();
+    ctx.fillStyle = "#D8B44A"; rr(ctx, 71, py, pw, 58, 29); ctx.fill();
     ctx.fillStyle = "#000000"; ctx.textAlign = "left"; ctx.fillText(range[2], 71 + 28, py + 39);
     ctx.fillStyle = "#969696"; ctx.font = "700 26px " + BODY;
     spaced(ctx, recapRangeText(range[0], range[1]), W - 70, py + 38, 0, "right");
@@ -2479,7 +2479,7 @@ body { overflow-x: clip; }
     ctx.fillStyle = "#787878"; ctx.font = "400 21px " + BODY; ctx.textAlign = "left";
     ctx.fillText("Past results do not predict future results. CFDs are high risk; most retail accounts lose money.", 70, footY + 36);
     ctx.fillStyle = "#969696"; ctx.font = "700 24px " + BODY;
-    ctx.fillText("Green up. Red down. Black is the discipline.", 70, footY + 70);
+    ctx.fillText("Gold up. Red down. Black is the discipline.", 70, footY + 70);
 
     if (!st.n) {
       ctx.fillStyle = "#8d8d88"; ctx.font = "700 34px " + DISPLAY; ctx.textAlign = "center";
@@ -2517,14 +2517,14 @@ body { overflow-x: clip; }
     var pf = st.pf === null ? "-" : st.pf === Infinity ? "No losses" : st.pf.toFixed(2);
     statRow(ctx, W, row1Top, [
       ["WIN RATE", Math.round(st.winRate * 100) + "%", "#E9E5D8"],
-      ["AVERAGE R", fmtR(st.avg), st.avg > 0 ? "#26A69A" : "#EF5350"],
+      ["AVERAGE R", fmtR(st.avg), st.avg > 0 ? "#D8B44A" : "#E2605B"],
       ["PROFIT FACTOR", pf, "#E9E5D8"],
-      ["MAX DRAWDOWN", st.dd === 0 ? "0.00R" : "−" + st.dd.toFixed(2) + "R", st.dd === 0 ? "#E9E5D8" : "#EF5350"]
+      ["MAX DRAWDOWN", st.dd === 0 ? "0.00R" : "−" + st.dd.toFixed(2) + "R", st.dd === 0 ? "#E9E5D8" : "#E2605B"]
     ]);
     if (twoRows) {
       statRow(ctx, W, row2Top, [
-        ["BEST TRADE", fmtR(st.best), st.best > 0 ? "#26A69A" : "#EF5350"],
-        ["WORST TRADE", fmtR(st.worst), st.worst < 0 ? "#EF5350" : "#E9E5D8"],
+        ["BEST TRADE", fmtR(st.best), st.best > 0 ? "#D8B44A" : "#E2605B"],
+        ["WORST TRADE", fmtR(st.worst), st.worst < 0 ? "#E2605B" : "#E9E5D8"],
         ["RULES KEPT", st.rulesPct === null ? "-" : Math.round(st.rulesPct * 100) + "%", "#E9E5D8"],
         ["TRADES", String(st.n), "#E9E5D8"]
       ]);
@@ -3033,7 +3033,7 @@ body { overflow-x: clip; }
     // risk zone (entry to stop) and result zone (entry to exit)
     ctx.fillStyle = "rgba(255,255,255,0.13)";
     ctx.fillRect(x1, Math.min(yOf(e), yOf(s)), x2 - x1, Math.abs(yOf(e) - yOf(s)));
-    ctx.fillStyle = win ? "rgba(38,166,154,0.30)" : "rgba(239,83,80,0.26)";
+    ctx.fillStyle = win ? "rgba(216,180,74,0.30)" : "rgba(226,96,91,0.26)";
     ctx.fillRect(x1, Math.min(yOf(e), yOf(xt)), x2 - x1, Math.abs(yOf(e) - yOf(xt)));
     // level lines
     function line(v, color, wd, dash) {
@@ -3045,7 +3045,7 @@ body { overflow-x: clip; }
     line(xt, accent, 5);
     // labels on the right, pushed apart so they never overlap
     var items = [
-      { v: s, name: "STOP", color: "#EF5350" },
+      { v: s, name: "STOP", color: "#E2605B" },
       { v: e, name: "ENTRY", color: "#E9E5D8" },
       { v: xt, name: "EXIT", color: accent }
     ];
@@ -3071,14 +3071,14 @@ body { overflow-x: clip; }
     canvas.width = W; canvas.height = H;
     var ctx = canvas.getContext("2d");
     var win = t.r >= 0.1, loss = t.r <= -0.1;
-    var accent = win ? "#26A69A" : loss ? "#EF5350" : "#8d8d88";
+    var accent = win ? "#D8B44A" : loss ? "#E2605B" : "#8d8d88";
     ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = "#3a3a3a"; ctx.lineWidth = 2; ctx.strokeRect(24, 24, W - 48, H - 48);
 
     // header: candle mark, name, handle
-    ctx.strokeStyle = "#E0B93B"; ctx.lineWidth = 4;
+    ctx.strokeStyle = "#D8B44A"; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(81, 70); ctx.lineTo(81, 116); ctx.stroke();
-    ctx.fillStyle = "#E0B93B"; ctx.fillRect(72, 80, 18, 26);
+    ctx.fillStyle = "#D8B44A"; ctx.fillRect(72, 80, 18, 26);
     ctx.font = "700 34px " + DISPLAY; ctx.textBaseline = "alphabetic";
     spaced(ctx, "THE YELLOW CANDLE", 112, 105, 2, "left");
     ctx.fillStyle = "#969696"; ctx.font = "700 28px " + BODY;
@@ -3093,7 +3093,7 @@ body { overflow-x: clip; }
     ctx.fillStyle = "#E9E5D8"; ctx.textAlign = "left"; ctx.fillText(pair, 71 + 28, py + 39);
     var side = (t.dir || "").toUpperCase();
     var sw = ctx.measureText(side).width + 56, sx = 71 + pw + 16;
-    ctx.fillStyle = t.dir === "Short" ? "#E9E5D8" : "#E0B93B";
+    ctx.fillStyle = t.dir === "Short" ? "#E9E5D8" : "#D8B44A";
     rr(ctx, sx, py, sw, 58, 29); ctx.fill();
     ctx.fillStyle = "#000000"; ctx.fillText(side, sx + 28, py + 39);
     ctx.fillStyle = "#969696"; ctx.font = "700 26px " + BODY;
@@ -3175,7 +3175,7 @@ body { overflow-x: clip; }
     ctx.fillStyle = "#787878"; ctx.font = "400 21px " + BODY; ctx.textAlign = "left";
     ctx.fillText("Not financial advice. CFDs are high risk; most retail accounts lose money.", 70, footY + 36);
     ctx.fillStyle = "#969696"; ctx.font = "700 24px " + BODY;
-    ctx.fillText("Green up. Red down. Black is the discipline.", 70, footY + 70);
+    ctx.fillText("Gold up. Red down. Black is the discipline.", 70, footY + 70);
   }
 
   function renderCard() {
