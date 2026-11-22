@@ -173,7 +173,7 @@ input, select, textarea {
   font: inherit; color: var(--fg); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line-2);
   border-radius: 12px; padding: 10px 14px; width: 100%; min-width: 0; outline: none;
 }
-input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+input:focus, select:focus, textarea:focus, input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--gold); outline: none; box-shadow: none; }
 select { appearance: none; -webkit-appearance: none; padding-right: 34px; cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239B988A' stroke-width='1.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 14px center; }
