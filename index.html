@@ -775,10 +775,30 @@ body { overflow-x: clip; }
     if (!m) return iso || "";
     return parseInt(m[3], 10) + " " + MON[parseInt(m[2], 10) - 1] + " " + m[1].slice(2);
   }
-  function fmtPx(v) {
+  function pairDecimals(pair) {
+    var p = String(pair || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (/JPY$/.test(p)) return 3;
+    if (/^(XAU|XAG|XPT|XPD)/.test(p)) return 3;
+    if (/^(BTC|ETH|LTC|XRP|SOL|BNB|ADA|DOGE)/.test(p)) return 2;
+    if (/^(NAS100|NDX|US100|US30|DJI|DOW|US500|SPX500|SPX|GER40|GER30|DAX|UK100|FTSE|JP225|NIKKEI|HK50|AUS200|FRA40|EU50)/.test(p)) return 2;
+    if (/^[A-Z]{6}$/.test(p)) return 5;
+    return 3;
+  }
+  function typedDecimals(t) {
+    var m = 0;
+    ["entry", "stop", "exit", "target"].forEach(function (k) {
+      var v = t && t[k];
+      if (v === undefined || v === null || v === "") return;
+      var str = String(v), i = str.indexOf(".");
+      if (i >= 0 && !/e/i.test(str)) m = Math.max(m, str.length - i - 1);
+    });
+    return Math.min(m, 6);
+  }
+  function fmtPx(v, t) {
     var n = Number(v);
     if (v === null || v === undefined || v === "" || isNaN(n)) return "-";
-    return n.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    var d = t ? Math.max(pairDecimals(t.pair), typedDecimals(t)) : 3;
+    return n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
   function todayIso() {
     var d = new Date();
@@ -1053,8 +1073,8 @@ body { overflow-x: clip; }
       tr.appendChild(h("td", "", t.tf || "-"));
       var tdPx = h("td", "num");
       var hasPx = t.entry !== undefined && t.entry !== null && t.entry !== "";
-      tdPx.appendChild(document.createTextNode(hasPx ? fmtPx(t.entry) : "-"));
-      if (hasPx && t.exit !== undefined && t.exit !== null && t.exit !== "") tdPx.appendChild(h("div", "sub-line", "to " + fmtPx(t.exit)));
+      tdPx.appendChild(document.createTextNode(hasPx ? fmtPx(t.entry, t) : "-"));
+      if (hasPx && t.exit !== undefined && t.exit !== null && t.exit !== "") tdPx.appendChild(h("div", "sub-line", "to " + fmtPx(t.exit, t)));
       tr.appendChild(tdPx);
       tr.appendChild(h("td", "r num " + rClass(t.r), fmtR(t.r)));
       var tdTags = h("td");
@@ -2846,9 +2866,9 @@ body { overflow-x: clip; }
       var tr = h("tr");
       tr.appendChild(h("td", "", x.label));
       if (x.trade) {
-        tr.appendChild(h("td", "num", fmtPx(x.trade.entry)));
-        tr.appendChild(h("td", "num", x.trade.stop !== undefined ? fmtPx(x.trade.stop) : "-"));
-        tr.appendChild(h("td", "num", fmtPx(x.trade.exit)));
+        tr.appendChild(h("td", "num", fmtPx(x.trade.entry, x.trade)));
+        tr.appendChild(h("td", "num", x.trade.stop !== undefined ? fmtPx(x.trade.stop, x.trade) : "-"));
+        tr.appendChild(h("td", "num", fmtPx(x.trade.exit, x.trade)));
         tr.appendChild(h("td", "r num " + rClass(x.trade.r), fmtR(x.trade.r)));
       } else {
         var td = h("td", "zero", x.why);
@@ -3070,7 +3090,7 @@ body { overflow-x: clip; }
       ctx.fillStyle = "#8d8d88"; ctx.font = "700 20px " + BODY;
       spaced(ctx, it.name, x2 + 40, it.y - 8, 3, "left");
       ctx.fillStyle = it.color; ctx.font = "700 34px " + DISPLAY; ctx.textAlign = "left";
-      ctx.fillText(fmtPx(it.v), x2 + 40, it.y + 28);
+      ctx.fillText(fmtPx(it.v, t), x2 + 40, it.y + 28);
     });
   }
 
@@ -3163,8 +3183,8 @@ body { overflow-x: clip; }
     // stats row
     var cols;
     if (CARD.prices && isNum(t.entry)) {
-      cols = [["ENTRY", fmtPx(t.entry), "#E9E5D8"], ["STOP", isNum(t.stop) ? fmtPx(t.stop) : "-", "#E9E5D8"],
-              ["EXIT", isNum(t.exit) ? fmtPx(t.exit) : "-", accent], ["TIMEFRAME", (t.tf || "-").toUpperCase(), "#E9E5D8"]];
+      cols = [["ENTRY", fmtPx(t.entry, t), "#E9E5D8"], ["STOP", isNum(t.stop) ? fmtPx(t.stop, t) : "-", "#E9E5D8"],
+              ["EXIT", isNum(t.exit) ? fmtPx(t.exit, t) : "-", accent], ["TIMEFRAME", (t.tf || "-").toUpperCase(), "#E9E5D8"]];
     } else {
       cols = [["PAIR", pair, "#E9E5D8"], ["SIDE", (t.dir || "-").toUpperCase(), "#E9E5D8"],
               ["TIMEFRAME", (t.tf || "-").toUpperCase(), "#E9E5D8"], ["RESULT", fmtR(t.r), accent]];
