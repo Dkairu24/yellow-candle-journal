@@ -303,10 +303,24 @@ body { overflow-x: clip; }
 .lp-points { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 40px 40px; margin-top: 104px; }
 .lp-point h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
 .lp-point p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
-.lp-final { margin-top: 104px; padding-top: 40px; border-top: 1px solid var(--line); }
-.lp-final h2 { font-size: 28px; letter-spacing: -0.02em; font-weight: 600; max-width: 520px; line-height: 1.15; }
+.lp-final { margin-top: 104px; }
+.lp-final-in { position: relative; overflow: hidden; text-align: center; border: 1px solid rgba(233, 229, 216, 0.12); border-radius: 28px; padding: 88px 24px 96px;
+  background: radial-gradient(75% 85% at 50% 125%, rgba(244, 212, 110, 0.5), transparent 70%), radial-gradient(60% 50% at 50% 0%, rgba(224, 185, 59, 0.08), transparent 70%), linear-gradient(180deg, #151513 0%, #0E0E0C 100%); }
+.lp-final h2 { font-size: 40px; letter-spacing: -0.025em; font-weight: 600; max-width: 560px; line-height: 1.1; margin: 0 auto; }
+.lp-final p { color: var(--muted); font-size: 16px; margin: 16px auto 0; max-width: 420px; }
+.lp-final-cta { display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 36px; }
+.btn.big { padding: 15px 28px; font-size: 15px; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
+.btn.primary.big { box-shadow: 0 10px 40px rgba(224, 185, 59, 0.28); }
+.btn.primary.big:hover { transform: translateY(-2px); box-shadow: 0 14px 48px rgba(224, 185, 59, 0.4); }
+.btn.primary.big .arrow { display: inline-block; margin-left: 6px; transition: transform 0.2s ease; }
+.btn.primary.big:hover .arrow { transform: translateX(4px); }
+.btn.outline { border-color: rgba(233, 229, 216, 0.28); color: var(--fg); background: rgba(14, 14, 12, 0.5); }
+.btn.outline:hover { border-color: var(--fg); transform: translateY(-2px); }
+.lp-try-link { display: inline-block; background: none; border: 0; color: var(--muted); font-size: 13px; margin-top: 28px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.lp-try-link:hover { color: var(--fg); }
+@media (prefers-reduced-motion: reduce) { .btn.big, .btn.primary.big .arrow { transition: none; } }
 .lp-foot { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
-@media (max-width: 560px) { .lp-stage { padding-bottom: 160px; } .lp-preview { padding: 20px; margin-top: 56px; border-radius: 16px; } .lp-hero { padding-top: 48px; } .lp-hero h1 { font-size: 32px; } .lp-hero p { font-size: 15px; }   .lp-result .big { font-size: 44px; } .lp-points, .lp-final { margin-top: 72px; } }
+@media (max-width: 560px) { .lp-final-in { padding: 56px 20px 64px; border-radius: 22px; } .lp-final h2 { font-size: 30px; } .lp-final-cta .btn { width: 100%; justify-content: center; } .lp-stage { padding-bottom: 160px; } .lp-preview { padding: 20px; margin-top: 56px; border-radius: 16px; } .lp-hero { padding-top: 48px; } .lp-hero h1 { font-size: 32px; } .lp-hero p { font-size: 15px; }   .lp-result .big { font-size: 44px; } .lp-points, .lp-final { margin-top: 72px; } }
 
 /* account */
 #acct-btn { min-width: 84px; }
@@ -386,11 +400,14 @@ body { overflow-x: clip; }
   </section>
 
   <section class="lp-final">
-    <h2>Start with your next trade.</h2>
-    <div class="lp-cta">
-      <button class="btn primary" id="lp-signup" type="button">Create your account</button>
-      <button class="btn" id="lp-signin" type="button">Sign in</button>
-      <button class="btn" id="lp-try" type="button">Try it without an account</button>
+    <div class="lp-final-in">
+      <h2>Start with your next trade.</h2>
+      <p>Log it in R, score the setup, and see what it teaches you.</p>
+      <div class="lp-final-cta">
+        <button class="btn primary big" id="lp-signup" type="button">Create your account <span class="arrow" aria-hidden="true">&rarr;</span></button>
+        <button class="btn outline big" id="lp-signin" type="button">Sign in</button>
+      </div>
+      <button class="lp-try-link" id="lp-try" type="button">or try it without an account</button>
     </div>
   </section>
 
