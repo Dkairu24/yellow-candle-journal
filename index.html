@@ -236,7 +236,7 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
 #toast.show { opacity: 1; }
 
 /* pre-trade checklist */
-.check-wrap { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px 72px; align-items: start; }
+.check-wrap { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 24px 72px; align-items: start; }
 .check-score { border: 0; background: none; border-radius: 0; padding: 0; min-width: 0; }
 .score-line { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .score-num { font-size: 56px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
@@ -245,6 +245,8 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .grade-pill.B { background: var(--fg); color: #0E0E0C; border-color: var(--fg); }
 .grade-pill.C { color: var(--fg); }
 .score-verdict { margin-top: 12px; font-weight: 600; }
+#check-verdict, #check-missing { display: none; }
+.check-score .row { margin-top: 28px !important; }
 .check-score .chips { margin-top: 12px; }
 .check-list { display: flex; flex-direction: column; min-width: 0; }
 .check-item { display: flex; gap: 14px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); cursor: pointer; }
