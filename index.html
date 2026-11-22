@@ -352,6 +352,10 @@ body { overflow-x: clip; }
   .top-actions::-webkit-scrollbar { display: none; }
   .top-actions .btn { white-space: nowrap; flex: none; }
   #jump { order: -1; }
+  .top { flex-wrap: wrap; align-items: center; row-gap: 16px; }
+  .top .brand { flex: 1 1 auto; }
+  .top > #acct-btn { flex: none; }
+  .top-actions { flex-basis: 100%; }
   .nav { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
   .filters { gap: 16px; }
   .filters .field { flex: 1 1 130px; }
@@ -2183,6 +2187,20 @@ body.modal-open { overflow: hidden; }
       }, 1800);
     }
   }
+  function placeAcctBtn() {
+    var b = $("acct-btn"), top = document.querySelector(".top"), acts = document.querySelector(".top-actions");
+    if (!b || !top || !acts) return;
+    var mobile = window.matchMedia("(max-width: 560px)").matches;
+    if (mobile) { if (b.parentNode !== top) top.insertBefore(b, acts); }
+    else if (b.parentNode !== acts) acts.insertBefore(b, $("jump"));
+    window.dispatchEvent(new Event("resize"));
+  }
+  function initAcctPlacement() {
+    placeAcctBtn();
+    var mq = window.matchMedia("(max-width: 560px)");
+    if (mq.addEventListener) mq.addEventListener("change", placeAcctBtn);
+    else if (mq.addListener) mq.addListener(placeAcctBtn);
+  }
   function initScrollHints() {
     scrollHint(document.querySelector(".top-actions"), true);
     scrollHint(document.getElementById("nav"), false);
@@ -2205,6 +2223,7 @@ body.modal-open { overflow: hidden; }
   }
   function initMotion() {
     initNav();
+    initAcctPlacement();
     initScrollHints();
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
