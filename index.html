@@ -117,6 +117,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .acct-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .acct-link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
 .note.bad { color: var(--white); }
+.btn.warn { border-color: var(--white); color: var(--white); }
 
 /* screenshots */
 #shot-prev { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
@@ -430,6 +431,12 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       <p style="margin-top:0">Signed in as <strong id="acct-email"></strong></p>
       <p class="note" id="acct-status"></p>
       <div class="acct-row"><button class="btn primary" id="acct-sync" type="button">Sync now</button><button class="btn" id="acct-signout" type="button">Sign out</button></div>
+      <p style="margin:22px 0 0"><button class="acct-link" id="acct-wipe" type="button">Delete my cloud data</button></p>
+    </div>
+    <div id="acct-new" hidden>
+      <p class="note" style="margin-top:0">Choose a new password for your account.</p>
+      <div class="field"><label for="acct-newpw">New password</label><input id="acct-newpw" type="password" autocomplete="new-password" minlength="8"></div>
+      <div class="acct-row"><button class="btn primary" id="acct-setpw" type="button">Save new password</button></div>
     </div>
     <p class="note" id="acct-msg" role="status" style="margin-top:16px"></p>
   </div>
@@ -1487,12 +1494,29 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   }
   function tsOf(t) { return t.updated || t.created || 0; }
   function clock(d) { return p2(d.getHours()) + ":" + p2(d.getMinutes()); }
-  function setSyncText(msg) {
-    syncMsg = msg;
+  var syncState = "off";
+  var recovering = false;
+  var bannerDefault = null;
+  function applyBtn() {
     var b = $("acct-btn");
-    if (b) b.textContent = sbUser ? "Synced" + (syncing ? "..." : "") : "Sign in";
+    if (!b) return;
+    var label = !sbUser ? "Sign in" : syncState === "busy" ? "Syncing..." : syncState === "fail" ? "Sync failed" : syncState === "offline" ? "Offline" : "Synced";
+    b.textContent = label;
+    b.classList.toggle("warn", !!sbUser && (syncState === "fail" || syncState === "offline"));
+    b.title = sbUser ? syncMsg : "";
+  }
+  function updateBanner() {
+    var st = $("status");
+    if (!st || !storageOk) return;
+    if (bannerDefault === null) bannerDefault = st.textContent;
+    st.textContent = sbUser ? "You are signed in: your trades and screenshots sync to your account." : bannerDefault;
+  }
+  function setSyncText(msg, state) {
+    syncMsg = msg;
+    if (state) syncState = state;
     var s = $("acct-status");
     if (s) s.textContent = msg;
+    applyBtn();
   }
   function setUser(u) {
     var was = sbUser && sbUser.id;
@@ -1541,7 +1565,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     if (!sb || !sbUser) return Promise.resolve();
     if (syncing) { syncAgain = true; return Promise.resolve(); }
     syncing = true;
-    setSyncText("Syncing...");
+    setSyncText("Syncing...", "busy");
     var uid = sbUser.id;
     return sb.from("trades").select("id,data,updated_at,deleted").then(function (res) {
       if (res.error) throw res.error;
@@ -1608,10 +1632,11 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     }).then(function () {
       lastSync = Date.now();
       syncing = false;
-      setSyncText("Synced at " + clock(new Date()));
+      setSyncText("Synced at " + clock(new Date()), "ok");
     }).catch(function (e) {
       syncing = false;
-      setSyncText(navigator.onLine === false ? "Offline. Your trades are safe here and will sync later." : "Sync failed: " + ((e && e.message) || "try again"));
+      if (navigator.onLine === false) setSyncText("Offline. Your trades are safe here and will sync later.", "offline");
+      else setSyncText("Sync failed: " + ((e && e.message) || "try again") + ". Your trades are safe on this device.", "fail");
     }).then(function () {
       if (syncAgain) { syncAgain = false; scheduleSync(300); }
     });
@@ -1619,9 +1644,11 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
   function renderAcct() {
     var out = $("acct-out"), inn = $("acct-in");
     if (!out) return;
-    out.hidden = !!sbUser;
-    inn.hidden = !sbUser;
-    $("acct-btn").textContent = sbUser ? "Synced" : "Sign in";
+    out.hidden = !!sbUser || recovering;
+    inn.hidden = !sbUser || recovering;
+    $("acct-new").hidden = !recovering;
+    applyBtn();
+    updateBanner();
     if (sbUser) $("acct-email").textContent = sbUser.email || "your account";
   }
   function acctMsg(t, bad) {
@@ -1679,7 +1706,47 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       });
     });
     sb.auth.getSession().then(function (r) { setUser(r.data && r.data.session && r.data.session.user); });
-    sb.auth.onAuthStateChange(function (ev, session) { setUser(session && session.user); });
+    sb.auth.onAuthStateChange(function (ev, session) {
+      if (ev === "PASSWORD_RECOVERY") { recovering = true; acctMsg(""); renderAcct(); $("acct-modal").hidden = false; }
+      setUser(session && session.user);
+    });
+    $("acct-setpw").addEventListener("click", function () {
+      var pw = $("acct-newpw").value;
+      if (pw.length < 8) { acctMsg("Use a password of at least 8 characters.", true); return; }
+      sb.auth.updateUser({ password: pw }).then(function (r) {
+        if (r.error) { acctMsg(r.error.message, true); return; }
+        recovering = false;
+        $("acct-newpw").value = "";
+        renderAcct();
+        acctMsg("Password updated. You are signed in.");
+      }).catch(function () { acctMsg("Could not reach the sign-in service.", true); });
+    });
+    var wipeArmed = false, wipeTimer = null;
+    $("acct-wipe").addEventListener("click", function () {
+      var btn = $("acct-wipe");
+      if (!wipeArmed) {
+        wipeArmed = true;
+        btn.textContent = "Press again to delete everything in your cloud account";
+        wipeTimer = setTimeout(function () { wipeArmed = false; btn.textContent = "Delete my cloud data"; }, 5000);
+        return;
+      }
+      clearTimeout(wipeTimer);
+      wipeArmed = false;
+      btn.textContent = "Delete my cloud data";
+      var uid = sbUser.id, store = sb.storage.from("shots");
+      acctMsg("Deleting...");
+      sb.from("trades").delete().eq("user_id", uid).then(function (r) {
+        if (r.error) throw r.error;
+        return store.list(uid, { limit: 1000 });
+      }).then(function (r) {
+        var names = ((r && r.data) || []).map(function (f) { return uid + "/" + f.name; });
+        return names.length ? store.remove(names) : null;
+      }).then(function () {
+        return sb.auth.signOut();
+      }).then(function () {
+        acctMsg("Your cloud data is deleted and you are signed out. Your trades are still on this device.");
+      }).catch(function (e) { acctMsg("Could not delete: " + ((e && e.message) || "try again"), true); });
+    });
     window.addEventListener("online", function () { scheduleSync(500); });
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden && sbUser && Date.now() - lastSync > 30000) scheduleSync(300);
