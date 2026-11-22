@@ -110,6 +110,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ins.good .ins-t { color: var(--yellow); }
 .ins-x { color: var(--muted); font-size: 13px; line-height: 1.45; }
 
+/* account */
+#acct-btn { min-width: 84px; }
+.acct-box { max-width: 420px; margin: 0 auto; }
+.acct-box .field { margin-bottom: 18px; }
+.acct-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.acct-link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+.note.bad { color: var(--white); }
+
 /* screenshots */
 #shot-prev { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 #shot-prev[hidden] { display: none; }
@@ -267,6 +275,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       <button class="btn" id="import" type="button">Restore</button>
       <button class="btn" id="broker" type="button">Import trades</button>
       <button class="btn" id="recap-btn" type="button">Recap card</button>
+      <button class="btn" id="acct-btn" type="button">Sign in</button>
       <input id="import-file" type="file" accept="application/json,.json" hidden>
       <button class="btn primary" id="jump" type="button">Log a trade</button>
     </div>
@@ -407,6 +416,24 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
 
   <p class="foot">Past results do not predict future results. CFDs are high risk and most retail accounts lose money.</p>
 </div>
+<div id="acct-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="acct-title">
+  <div class="modal-box acct-box">
+    <div class="modal-head"><h2 id="acct-title">Your account</h2><button class="btn small" id="acct-close" type="button">Close</button></div>
+    <div id="acct-out">
+      <p class="note" style="margin-top:0">Sign in to keep your trades and screenshots in your own account, on every device. Without signing in, the journal still works on this device only.</p>
+      <div class="field"><label for="acct-email-in">Email</label><input id="acct-email-in" type="email" autocomplete="email"></div>
+      <div class="field"><label for="acct-pw">Password</label><input id="acct-pw" type="password" autocomplete="current-password" minlength="8"></div>
+      <div class="acct-row"><button class="btn primary" id="acct-signin" type="button">Sign in</button><button class="btn" id="acct-signup" type="button">Create account</button></div>
+      <p style="margin:14px 0 0"><button class="acct-link" id="acct-reset" type="button">Forgot your password?</button></p>
+    </div>
+    <div id="acct-in" hidden>
+      <p style="margin-top:0">Signed in as <strong id="acct-email"></strong></p>
+      <p class="note" id="acct-status"></p>
+      <div class="acct-row"><button class="btn primary" id="acct-sync" type="button">Sync now</button><button class="btn" id="acct-signout" type="button">Sign out</button></div>
+    </div>
+    <p class="note" id="acct-msg" role="status" style="margin-top:16px"></p>
+  </div>
+</div>
 <div id="shot-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Trade screenshot">
   <div class="modal-box">
     <div class="modal-head"><h2>Chart screenshot</h2><button class="btn small" id="shot-close" type="button">Close</button></div>
@@ -506,6 +533,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 (function () {
   "use strict";
@@ -1000,6 +1028,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     doc.created = existing && existing.created ? existing.created : Date.now();
     var id = editingId || ("t" + Date.now() + Math.random().toString(36).slice(2, 6));
     doc.id = id;
+    doc.updated = Date.now();
     saveShotFor(id, doc);
     if (!doc.shot && existing && existing.shot && !SHOT.remove) doc.shot = true;
     var wasEditing = !!editingId;
@@ -1027,6 +1056,8 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
         armedDelete = null;
         trades = trades.filter(function (t) { return t.id !== del; });
         shotDel(del).catch(function () {});
+        deleted[del] = Date.now();
+        saveDeleted();
         persist();
         if (editingId === del) resetForm();
         toast("Trade deleted");
@@ -1436,6 +1467,224 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     });
     $("shot-close").addEventListener("click", function () { $("shot-modal").hidden = true; });
     $("shot-modal").addEventListener("click", function (e) { if (e.target === $("shot-modal")) $("shot-modal").hidden = true; });
+  }
+
+  /* ---------- account and sync (Supabase) ---------- */
+  var SB_URL = "https://ehocjjfcbpchxqouipvy.supabase.co";
+  var SB_KEY = "sb_publishable__5JwB7XvODt2D6da_tfGeA_mSl645mL";
+  var DEL_KEY = "yellow-candle-deleted-v1";
+  var sb = null, sbUser = null, syncing = false, syncAgain = false, syncTimer = null, lastSync = 0, syncMsg = "";
+  var quietPersist = false;
+  function loadDeleted() {
+    try {
+      var o = JSON.parse(window.localStorage.getItem(DEL_KEY) || "{}");
+      return o && typeof o === "object" ? o : {};
+    } catch (e) { return {}; }
+  }
+  var deleted = loadDeleted();
+  function saveDeleted() {
+    try { window.localStorage.setItem(DEL_KEY, JSON.stringify(deleted)); } catch (e) { /* kept for this visit */ }
+  }
+  function tsOf(t) { return t.updated || t.created || 0; }
+  function clock(d) { return p2(d.getHours()) + ":" + p2(d.getMinutes()); }
+  function setSyncText(msg) {
+    syncMsg = msg;
+    var b = $("acct-btn");
+    if (b) b.textContent = sbUser ? "Synced" + (syncing ? "..." : "") : "Sign in";
+    var s = $("acct-status");
+    if (s) s.textContent = msg;
+  }
+  function setUser(u) {
+    var was = sbUser && sbUser.id;
+    sbUser = u || null;
+    renderAcct();
+    if (sbUser && sbUser.id !== was) scheduleSync(0);
+    if (!sbUser) setSyncText("Not signed in");
+  }
+  function scheduleSync(ms) {
+    if (!sb || !sbUser) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncNow, ms === undefined ? 1500 : ms);
+  }
+  function chunk(arr, n) {
+    var out = [];
+    for (var i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+    return out;
+  }
+  function syncShots(uid, ids, goneIds) {
+    var store = sb.storage.from("shots");
+    return store.list(uid, { limit: 1000 }).then(function (res) {
+      var have = {};
+      ((res && res.data) || []).forEach(function (f) { have[f.name] = true; });
+      var chain = Promise.resolve();
+      ids.forEach(function (id) {
+        chain = chain.then(function () {
+          return shotGet(id).then(function (blob) {
+            var name = id + ".jpg";
+            if (blob && !have[name]) {
+              return store.upload(uid + "/" + name, blob, { contentType: "image/jpeg", upsert: true });
+            }
+            if (!blob && have[name]) {
+              return store.download(uid + "/" + name).then(function (d) {
+                if (d && d.data) return shotPut(id, d.data);
+              });
+            }
+          }).catch(function () { /* one screenshot failing must not stop the rest */ });
+        });
+      });
+      var rm = goneIds.filter(function (id) { return have[id + ".jpg"]; }).map(function (id) { return uid + "/" + id + ".jpg"; });
+      if (rm.length) chain = chain.then(function () { return store.remove(rm); }).catch(function () {});
+      return chain;
+    });
+  }
+  function syncNow() {
+    if (!sb || !sbUser) return Promise.resolve();
+    if (syncing) { syncAgain = true; return Promise.resolve(); }
+    syncing = true;
+    setSyncText("Syncing...");
+    var uid = sbUser.id;
+    return sb.from("trades").select("id,data,updated_at,deleted").then(function (res) {
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      var remote = {}, rTr = {}, rDel = {}, rTs = {};
+      rows.forEach(function (r) {
+        remote[r.id] = r;
+        var ts = (r.data && r.data.updated) || Date.parse(r.updated_at) || 0;
+        rTs[r.id] = ts;
+        if (r.deleted) rDel[r.id] = ts;
+        else {
+          var one = cleanList([Object.assign({}, r.data, { id: r.id })])[0];
+          if (one) rTr[r.id] = one;
+        }
+      });
+      var map = {};
+      trades.forEach(function (t) { map[t.id] = t; });
+      Object.keys(rTr).forEach(function (id) {
+        if (!map[id] || tsOf(rTr[id]) > tsOf(map[id])) map[id] = rTr[id];
+      });
+      var del = {};
+      [deleted, rDel].forEach(function (d) {
+        Object.keys(d).forEach(function (k) { del[k] = Math.max(del[k] || 0, d[k]); });
+      });
+      Object.keys(map).forEach(function (id) {
+        if (del[id] && del[id] >= tsOf(map[id])) delete map[id];
+      });
+      var merged = Object.keys(map).map(function (k) { return map[k]; });
+      var changed = merged.length !== trades.length || merged.some(function (t) {
+        return trades.indexOf(t) < 0;
+      });
+      var delChanged = Object.keys(del).length !== Object.keys(deleted).length;
+      trades = merged;
+      deleted = del;
+      if (changed || delChanged) {
+        quietPersist = true;
+        persist();
+        quietPersist = false;
+        saveDeleted();
+        renderAll();
+      }
+      var up = [];
+      merged.forEach(function (t) {
+        var r = remote[t.id];
+        if (!r || r.deleted || tsOf(t) > rTs[t.id]) {
+          up.push({ id: t.id, user_id: uid, data: t, updated_at: new Date(tsOf(t) || Date.now()).toISOString(), deleted: false });
+        }
+      });
+      Object.keys(del).forEach(function (id) {
+        var r = remote[id];
+        if (r && r.deleted && rTs[id] >= del[id]) return;
+        up.push({ id: id, user_id: uid, data: { updated: del[id] }, updated_at: new Date(del[id]).toISOString(), deleted: true });
+      });
+      var chain = Promise.resolve();
+      chunk(up, 200).forEach(function (part) {
+        chain = chain.then(function () {
+          return sb.from("trades").upsert(part, { onConflict: "user_id,id" }).then(function (r) { if (r.error) throw r.error; });
+        });
+      });
+      return chain.then(function () {
+        var withShot = merged.filter(function (t) { return t.shot; }).map(function (t) { return t.id; });
+        return syncShots(uid, withShot, Object.keys(del));
+      });
+    }).then(function () {
+      lastSync = Date.now();
+      syncing = false;
+      setSyncText("Synced at " + clock(new Date()));
+    }).catch(function (e) {
+      syncing = false;
+      setSyncText(navigator.onLine === false ? "Offline. Your trades are safe here and will sync later." : "Sync failed: " + ((e && e.message) || "try again"));
+    }).then(function () {
+      if (syncAgain) { syncAgain = false; scheduleSync(300); }
+    });
+  }
+  function renderAcct() {
+    var out = $("acct-out"), inn = $("acct-in");
+    if (!out) return;
+    out.hidden = !!sbUser;
+    inn.hidden = !sbUser;
+    $("acct-btn").textContent = sbUser ? "Synced" : "Sign in";
+    if (sbUser) $("acct-email").textContent = sbUser.email || "your account";
+  }
+  function acctMsg(t, bad) {
+    var m = $("acct-msg");
+    m.textContent = t || "";
+    m.className = "note" + (bad ? " bad" : "");
+  }
+  function initSync() {
+    try {
+      if (window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+    } catch (e) { sb = null; }
+    $("acct-btn").addEventListener("click", function () { renderAcct(); acctMsg(""); $("acct-modal").hidden = false; });
+    $("acct-close").addEventListener("click", function () { $("acct-modal").hidden = true; });
+    $("acct-modal").addEventListener("click", function (e) { if (e.target === $("acct-modal")) $("acct-modal").hidden = true; });
+    if (!sb) { setSyncText("Sync is unavailable right now. The journal still works on this device."); return; }
+    function creds() {
+      var email = $("acct-email-in").value.trim(), pw = $("acct-pw").value;
+      if (!email || email.indexOf("@") < 1) { acctMsg("Enter your email address.", true); return null; }
+      if (pw.length < 8) { acctMsg("Use a password of at least 8 characters.", true); return null; }
+      return { email: email, password: pw };
+    }
+    $("acct-signin").addEventListener("click", function () {
+      var c = creds(); if (!c) return;
+      acctMsg("Signing in...");
+      sb.auth.signInWithPassword(c).then(function (r) {
+        if (r.error) { acctMsg(r.error.message, true); return; }
+        $("acct-pw").value = "";
+        acctMsg("");
+        $("acct-modal").hidden = true;
+        toast("Signed in. Syncing your trades.");
+      }).catch(function () { acctMsg("Could not reach the sign-in service.", true); });
+    });
+    $("acct-signup").addEventListener("click", function () {
+      var c = creds(); if (!c) return;
+      acctMsg("Creating your account...");
+      sb.auth.signUp({ email: c.email, password: c.password, options: { emailRedirectTo: location.href.split("#")[0] } }).then(function (r) {
+        if (r.error) { acctMsg(r.error.message, true); return; }
+        $("acct-pw").value = "";
+        if (r.data && r.data.session) { acctMsg(""); $("acct-modal").hidden = true; toast("Account created. Syncing your trades."); }
+        else acctMsg("Check your email and press the confirmation link, then come back and sign in.");
+      }).catch(function () { acctMsg("Could not reach the sign-in service.", true); });
+    });
+    $("acct-reset").addEventListener("click", function () {
+      var email = $("acct-email-in").value.trim();
+      if (!email) { acctMsg("Type your email above first.", true); return; }
+      sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split("#")[0] }).then(function (r) {
+        acctMsg(r.error ? r.error.message : "If that email has an account, a reset link is on its way.", !!r.error);
+      }).catch(function () { acctMsg("Could not reach the sign-in service.", true); });
+    });
+    $("acct-sync").addEventListener("click", function () { scheduleSync(0); });
+    $("acct-signout").addEventListener("click", function () {
+      sb.auth.signOut().then(function () {
+        $("acct-modal").hidden = true;
+        toast("Signed out. Your trades stay on this device.");
+      });
+    });
+    sb.auth.getSession().then(function (r) { setUser(r.data && r.data.session && r.data.session.user); });
+    sb.auth.onAuthStateChange(function (ev, session) { setUser(session && session.user); });
+    window.addEventListener("online", function () { scheduleSync(500); });
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden && sbUser && Date.now() - lastSync > 30000) scheduleSync(300);
+    });
+    setSyncText("Not signed in");
   }
 
   /* ---------- pre-trade checklist (your rules, saved in this browser) ---------- */
@@ -2546,6 +2795,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
       storageOk = false;
       showStatus("This browser is blocking saved data, so trades will be lost when you close the page. Press Backup after logging.");
     }
+    if (!quietPersist) scheduleSync();
   }
 
   /* ---------- files: CSV, backup, restore ---------- */
@@ -2635,6 +2885,7 @@ td.r { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
     initCheckUI();
     initFilterUI();
     initShotUI();
+    initSync();
     initCalendarUI();
     $("export").addEventListener("click", exportCsv);
     $("backup").addEventListener("click", backupJson);
