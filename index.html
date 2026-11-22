@@ -333,6 +333,8 @@ body { overflow-x: clip; }
 
 /* account */
 #acct-btn { min-width: 84px; }
+.btn#acct-btn:not(.warn), .btn#lp-signin-top { border: 1px solid var(--yellow); color: var(--fg); }
+.btn#acct-btn:not(.warn):hover, .btn#lp-signin-top:hover { border-color: var(--yellow-hover); background: rgba(255, 212, 59, 0.1); color: var(--fg); }
 .modal-box.acct-box { max-width: 400px; margin: 12vh auto 24px; padding: 26px 26px 22px; }
 .acct-box .modal-head { margin-bottom: 18px; }
 .acct-box .field { margin-bottom: 20px; }
