@@ -269,6 +269,34 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 760px) { .modal-body { grid-template-columns: minmax(0, 1fr); } }
 
+/* landing page for new visitors */
+.booting .wrap, .booting .landing { visibility: hidden; }
+.landing { max-width: 1120px; margin: 0 auto; padding: 32px max(20px, env(safe-area-inset-right, 0px)) 96px max(20px, env(safe-area-inset-left, 0px)); }
+.lp-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.lp-hero { padding: 96px 0 0; max-width: 760px; }
+.lp-hero h1 { font-size: 46px; line-height: 1.08; letter-spacing: -0.025em; font-weight: 600; text-wrap: balance; }
+.lp-final h2, .lp-point h2 { text-wrap: balance; }
+.lp-hero p { color: var(--muted); font-size: 17px; line-height: 1.5; margin: 20px 0 0; max-width: 600px; }
+.lp-cta { display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; margin-top: 32px; }
+.lp-cta .btn.primary { padding: 12px 24px; font-size: 14px; }
+.lp-preview { margin-top: 88px; border-top: 1px solid var(--line); padding-top: 28px; }
+.lp-result { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.lp-result .big { font-size: 56px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; color: var(--gain); margin-top: 12px; }
+.lp-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px 0; margin-top: 32px; }
+.lp-figs .l { color: var(--muted); font-size: 13px; }
+.lp-figs .v { font-size: 24px; font-weight: 600; margin-top: 4px; }
+.lp-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 40px 56px; margin-top: 48px; }
+.lp-charts h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.lp-result .ring { position: static; }
+.lp-note { font-size: 12px; color: var(--muted); margin-top: 28px; }
+.lp-points { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 40px 40px; margin-top: 104px; }
+.lp-point h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
+.lp-point p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.lp-final { margin-top: 104px; padding-top: 40px; border-top: 1px solid var(--line); }
+.lp-final h2 { font-size: 28px; letter-spacing: -0.02em; font-weight: 600; max-width: 520px; line-height: 1.15; }
+.lp-foot { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
+@media (max-width: 560px) { .lp-hero { padding-top: 56px; } .lp-hero h1 { font-size: 32px; } .lp-hero p { font-size: 15px; } .lp-preview { margin-top: 56px; } .lp-result .big { font-size: 44px; } .lp-points, .lp-final { margin-top: 72px; } }
+
 /* account */
 #acct-btn { min-width: 84px; }
 .modal-box.acct-box { max-width: 400px; margin: 12vh auto 24px; padding: 26px 26px 22px; }
@@ -297,7 +325,69 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
 </style>
 </head>
-<body>
+<body class="booting">
+<div class="landing" id="landing" hidden>
+  <header class="lp-top">
+    <div class="brand">
+      <svg width="22" height="40" viewBox="0 0 22 40" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="40" stroke="#E0B93B" stroke-width="3"/><rect x="2" y="9" width="18" height="22" fill="#E0B93B"/></svg>
+      <div><div class="brand-name">The Yellow Candle</div><div class="brand-sub">Trade journal</div></div>
+    </div>
+    <button class="btn" id="lp-signin-top" type="button">Sign in</button>
+  </header>
+
+  <section class="lp-hero">
+    <h1>Journal every trade. See what actually pays.</h1>
+    <p>A trade journal for supply and demand traders. Log each entry in R, score the setup before you take it, and find the habits that cost you money.</p>
+    <div class="lp-cta">
+      <button class="btn primary" id="lp-signup" type="button">Create your account</button>
+      <button class="btn" id="lp-signin" type="button">Sign in</button>
+      <button class="btn" id="lp-try" type="button">Try it without an account</button>
+    </div>
+  </section>
+
+  <section class="lp-preview" aria-label="A preview of the journal with sample numbers">
+    <div class="lp-result">
+      <div>
+        <div class="stat-label" style="color:var(--muted);font-size:12px;letter-spacing:.14em;text-transform:uppercase">Total R this month</div>
+        <div class="big num">+11.63R</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:8px">12 trades. 7 winners, 5 losers.</div>
+      </div>
+      <div class="ring"><svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="#EF5350" stroke-width="6"/><circle cx="36" cy="36" r="30" fill="none" stroke="#26A69A" stroke-width="6" stroke-dasharray="109.9 188.5" transform="rotate(-90 36 36)"/><text x="36" y="41" text-anchor="middle" font-size="16" font-weight="600" fill="#E9E5D8" font-family="-apple-system, system-ui, sans-serif">58%</text></svg><div>win rate</div></div>
+    </div>
+    <div class="lp-figs">
+      <div><div class="l">Win rate</div><div class="v">58%</div></div>
+      <div><div class="l">Expectancy</div><div class="v pos">+0.97R</div></div>
+      <div><div class="l">Profit factor</div><div class="v">3.33</div></div>
+      <div><div class="l">Max drawdown</div><div class="v neg">&minus;3.00R</div></div>
+      <div><div class="l">Rules followed</div><div class="v">75%</div></div>
+    </div>
+    <div class="lp-charts">
+      <div><h3>Equity</h3><svg viewBox="0 0 1120 250" style="width:100%;height:auto;display:block" aria-hidden="true"><defs><linearGradient id="lpfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26A69A" stop-opacity=".25"/><stop offset="1" stop-color="#26A69A" stop-opacity="0"/></linearGradient></defs><line x1="0" y1="226" x2="1120" y2="226" stroke="#3a3932"/><path d="M0 226 L93.3 175 L186.7 192 L280 158 L373.3 138 L466.7 155 L560 172 L653.3 189 L746.7 92 L840 109 L933.3 83 L1026.7 46 L1120 28 L1120 226 Z" fill="url(#lpfill)"/><path d="M0 226 L93.3 175 L186.7 192 L280 158 L373.3 138 L466.7 155 L560 172 L653.3 189 L746.7 92 L840 109 L933.3 83 L1026.7 46 L1120 28" fill="none" stroke="#26A69A" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1120" cy="28" r="5" fill="#26A69A"/></svg></div>
+      <div><h3>Daily results</h3><svg viewBox="0 0 1120 140" style="width:100%;height:auto;display:block" aria-hidden="true"><line x1="0" y1="70" x2="1120" y2="70" stroke="#3a3932"/><rect x="4.0" y="43.0" width="46" height="27.0" rx="2" fill="#26A69A"/><rect x="105.8" y="70.0" width="46" height="9.0" rx="2" fill="#EF5350"/><rect x="207.6" y="52.0" width="46" height="18.0" rx="2" fill="#26A69A"/><rect x="309.4" y="59.2" width="46" height="10.8" rx="2" fill="#26A69A"/><rect x="411.2" y="70.0" width="46" height="9.0" rx="2" fill="#EF5350"/><rect x="513.0" y="70.0" width="46" height="18.0" rx="2" fill="#EF5350"/><rect x="614.8" y="18.4" width="46" height="51.6" rx="2" fill="#26A69A"/><rect x="716.6" y="70.0" width="46" height="9.0" rx="2" fill="#EF5350"/><rect x="818.4" y="56.5" width="46" height="13.5" rx="2" fill="#26A69A"/><rect x="920.2" y="50.2" width="46" height="19.8" rx="2" fill="#26A69A"/><rect x="1022.0" y="61.0" width="46" height="9.0" rx="2" fill="#26A69A"/></svg></div>
+    </div>
+    <div class="lp-note">Sample numbers, to show what the journal looks like.</div>
+  </section>
+
+  <section class="lp-points">
+    <div class="lp-point"><h2>Everything in R</h2><p>Enter your entry, stop and exit. The journal works out R for you, so every trade compares fairly across pairs and position sizes.</p></div>
+    <div class="lp-point"><h2>Score the setup first</h2><p>Tick your own rules before you enter. Each trade gets an A, B or C grade, so you can see whether your best setups really pay.</p></div>
+    <div class="lp-point"><h2>Find the habits that cost you</h2><p>A calendar, a daily results chart and a discipline check show rushed entries, FOMO, revenge trades and broken rules, and what they cost.</p></div>
+    <div class="lp-point"><h2>Yours alone</h2><p>Trades stay on your device, or in your own account if you sign in. Nothing is public. Result cards are only shared when you choose to.</p></div>
+  </section>
+
+  <section class="lp-final">
+    <h2>Start with your next trade.</h2>
+    <div class="lp-cta">
+      <button class="btn primary" id="lp-signup2" type="button">Create your account</button>
+      <button class="btn" id="lp-try2" type="button">Try it without an account</button>
+    </div>
+  </section>
+
+  <footer class="lp-foot">
+    <span>Trading CFDs carries a high risk of losing money. This journal is a record-keeping tool, not financial advice.</span>
+    <span>@theyellowcandlefx</span>
+  </footer>
+</div>
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -592,6 +682,7 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>setTimeout(function () { if (document.body) document.body.classList.remove("booting"); }, 3500);</script>
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.0.2/lib/anime.umd.min.js"></script>
 <script>
 (function () {
@@ -979,6 +1070,7 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
     renderBreakdown();
     renderLog();
     runMotion();
+    updateLanding();
   }
 
   /* ---------- form ---------- */
@@ -1650,6 +1742,7 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
     var was = sbUser && sbUser.id;
     sbUser = u || null;
     renderAcct();
+    updateLanding();
     if (sbUser && sbUser.id !== was) scheduleSync(0);
     if (!sbUser) setSyncText("Not signed in");
   }
@@ -1791,7 +1884,7 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
     $("acct-btn").addEventListener("click", function () { renderAcct(); acctMsg(""); $("acct-modal").hidden = false; });
     $("acct-close").addEventListener("click", function () { $("acct-modal").hidden = true; });
     $("acct-modal").addEventListener("click", function (e) { if (e.target === $("acct-modal")) $("acct-modal").hidden = true; });
-    if (!sb) { setSyncText("Sync is unavailable right now. The journal still works on this device."); return; }
+    if (!sb) { setSyncText("Sync is unavailable right now. The journal still works on this device."); authReady = true; updateLanding(); return; }
     function creds() {
       var email = $("acct-email-in").value.trim(), pw = $("acct-pw").value;
       if (!email || email.indexOf("@") < 1) { acctMsg("Enter your email address.", true); return null; }
@@ -1833,7 +1926,7 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
         toast("Signed out. Your trades stay on this device.");
       });
     });
-    sb.auth.getSession().then(function (r) { setUser(r.data && r.data.session && r.data.session.user); });
+    sb.auth.getSession().then(function (r) { authReady = true; setUser(r.data && r.data.session && r.data.session.user); updateLanding(); }).catch(function () { authReady = true; updateLanding(); });
     sb.auth.onAuthStateChange(function (ev, session) {
       if (ev === "PASSWORD_RECOVERY") { recovering = true; acctMsg(""); renderAcct(); $("acct-modal").hidden = false; }
       setUser(session && session.user);
@@ -1968,6 +2061,36 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
         if (!m.hidden && an && box) an.animate(box, { opacity: [0, 1], translateY: [14, 0], duration: 260, ease: "outCubic" });
       }).observe(m, { attributes: true, attributeFilter: ["hidden"] });
     });
+  }
+
+  /* ---------- landing page (new visitors only) ---------- */
+  var authReady = false;
+  var landingDismissed = false;
+  try { landingDismissed = window.localStorage.getItem("yc-landing-dismissed") === "1"; } catch (e) { /* shown each visit */ }
+  function updateLanding() {
+    var L = $("landing"), W = document.querySelector(".wrap");
+    if (!L || !W || !authReady || !loaded) return;
+    var show = !sbUser && !trades.length && !landingDismissed;
+    L.hidden = !show;
+    W.hidden = show;
+    document.body.classList.remove("booting");
+  }
+  function openSignup() {
+    $("acct-btn").click();
+    setTimeout(function () { $("acct-email-in").focus(); }, 60);
+  }
+  function initLanding() {
+    ["lp-signup", "lp-signup2"].forEach(function (id) { $(id).addEventListener("click", openSignup); });
+    ["lp-signin", "lp-signin-top"].forEach(function (id) { $(id).addEventListener("click", openSignup); });
+    ["lp-try", "lp-try2"].forEach(function (id) {
+      $(id).addEventListener("click", function () {
+        landingDismissed = true;
+        try { window.localStorage.setItem("yc-landing-dismissed", "1"); } catch (e) { /* kept for this visit */ }
+        updateLanding();
+        window.scrollTo(0, 0);
+      });
+    });
+    setTimeout(function () { authReady = true; updateLanding(); }, 2000);
   }
 
   /* ---------- pre-trade checklist (your rules, saved in this browser) ---------- */
@@ -3168,6 +3291,7 @@ td.r { font-size: 14px; font-weight: 600; white-space: nowrap; }
     initCheckUI();
     initFilterUI();
     initShotUI();
+    initLanding();
     initSync();
     initMotion();
     initCalendarUI();
