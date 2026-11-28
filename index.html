@@ -243,7 +243,17 @@ textarea { min-height: 96px; padding: 11px 14px; resize: vertical; }
 .form-error { color: var(--loss); font-size: 13px; }
 #shot-prev { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 #shot-prev[hidden] { display: none; }
-#shot-prev img { max-width: 100%; max-height: 260px; border-radius: 8px; border: 1px solid var(--line-2); }
+#shot-prev { width: 100%; }
+.shot-item { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-2); align-items: start; }
+.shot-item img, .shot-item .shot-miss { width: 96px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line-2); }
+.shot-item .shot-miss { display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; color: var(--muted-sm); padding: 4px; }
+.shot-item .shot-side { display: grid; gap: 8px; min-width: 0; }
+.shot-item input[type=text] { width: 100%; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-ctl); color: var(--fg); padding: 8px 10px; font: inherit; font-size: 13px; }
+.shot-item .shot-rm { justify-self: start; }
+#shot-view figure, .pub-shot figure { margin: 0 0 18px; }
+#shot-view figure:last-child, .pub-shot figure:last-child { margin-bottom: 0; }
+#shot-view figcaption, .pub-shot figcaption { margin-top: 8px; font-size: 14px; color: var(--muted-sm); text-align: left; overflow-wrap: anywhere; }
+.pub-shot img { margin: 0; }
 #shot-view img { max-width: 100%; display: block; margin: 0 auto; border-radius: 8px; }
 .shot-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
@@ -870,7 +880,7 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
           <div class="field"><div class="lab">Followed your rules?</div><div class="seg" id="seg-rules" data-name="rules" role="radiogroup" aria-label="Followed rules"></div></div>
           <div class="field span-2"><div class="lab">Mindset</div><div class="seg" id="seg-mood" data-name="mood" role="radiogroup" aria-label="Mindset"></div></div>
           <div class="field wide"><label for="f-tags">Your own tags (separate with commas)</label><input id="f-tags" type="text" list="tag-list" maxlength="120" placeholder="news day, london open, A+ entry"><datalist id="tag-list"></datalist></div>
-          <div class="field wide"><label for="f-shot">Chart screenshot</label><input id="f-shot" type="file" accept="image/*"><div class="shot-hint">Or press Ctrl+V / Cmd+V anywhere on the page to paste one. It is stored in this browser and included when you press Backup.</div><div id="shot-prev" hidden></div></div>
+          <div class="field wide"><label for="f-shot">Chart screenshots</label><input id="f-shot" type="file" accept="image/*" multiple><div class="shot-hint">Add up to 6 and give each a caption, for example "1h bias" or "Entry on 1m". You can also press Ctrl+V / Cmd+V anywhere on the page to paste one. Stored in this browser and included when you press Backup.</div><div id="shot-prev" hidden></div></div>
           <div class="field wide"><label for="f-link">Chart snapshot link</label><input id="f-link" type="url" placeholder="https://www.tradingview.com/x/..."></div>
           <div class="field wide"><label for="f-notes">Notes</label><textarea id="f-notes" placeholder="Anything worth remembering about this trade."></textarea></div>
         </div>
@@ -1818,7 +1828,6 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
     doc.id = id;
     doc.updated = Date.now();
     saveShotFor(id, doc);
-    if (!doc.shot && existing && existing.shot && !SHOT.remove) doc.shot = true;
     var wasEditing = !!editingId;
     var at = -1;
     trades.forEach(function (t, i) { if (t.id === id) at = i; });
@@ -1845,8 +1854,11 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
       if (armedDelete === del) {
         clearTimeout(armTimer);
         armedDelete = null;
+        var goneTrade = trades.filter(function (t) { return t.id === del; })[0];
         trades = trades.filter(function (t) { return t.id !== del; });
-        shotDel(del).catch(function () {});
+        var goneKeys = shotList(goneTrade || { id: del, shot: true }).map(function (x) { return x.k; });
+        goneKeys.forEach(function (k) { shotDel(k).catch(function () {}); });
+        cloudShotRemove(goneKeys);
         deleted[del] = Date.now();
         saveDeleted();
         persist();
@@ -2166,7 +2178,7 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
   }
 
   /* ---------- trade screenshots (kept in this browser only, never uploaded) ---------- */
-  var SHOT = { blob: null, url: "", remove: false };
+  var SHOTS = [], SHOT_GONE = [];
   var shotDb = null;
   function openShotDb() {
     return new Promise(function (resolve, reject) {
@@ -2209,67 +2221,116 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
       img.src = url;
     });
   }
+  var MAX_SHOTS = 6;
+  function shotList(t) {
+    if (t && Array.isArray(t.shots) && t.shots.length) return t.shots.filter(function (x) { return x && x.k; });
+    return t && t.shot ? [{ k: t.id, c: "" }] : [];
+  }
+  function newShotKey(id) { return id + "_" + Math.random().toString(36).slice(2, 8); }
+  function cloudShotRemove(keys) {
+    if (!sb || !sbUser || !keys.length) return;
+    sb.storage.from("shots").remove(keys.map(function (k) { return sbUser.id + "/" + k + ".jpg"; })).catch(function () {});
+  }
   function renderShotPreview() {
     var box = $("shot-prev");
     clear(box);
-    if (SHOT.url) {
-      var im = document.createElement("img");
-      im.src = SHOT.url; im.alt = "Chart screenshot for this trade";
-      box.appendChild(im);
-      var rm = h("button", "btn small", "Remove screenshot"); rm.type = "button";
-      rm.addEventListener("click", function () { setShot(null, true); });
-      box.appendChild(rm);
-    }
-    box.hidden = !SHOT.url;
+    SHOTS.forEach(function (it, i) {
+      var row = h("div", "shot-item");
+      if (it.url) { var im = document.createElement("img"); im.src = it.url; im.alt = "Screenshot " + (i + 1); row.appendChild(im); }
+      else row.appendChild(h("div", "shot-miss", it.pending ? "Loading..." : "Not on this device"));
+      var side = h("div", "shot-side");
+      var ci = document.createElement("input");
+      ci.type = "text"; ci.maxLength = 140; ci.placeholder = "Caption (optional)"; ci.value = it.c || "";
+      ci.setAttribute("aria-label", "Caption for screenshot " + (i + 1));
+      ci.addEventListener("input", function () { it.c = ci.value; });
+      side.appendChild(ci);
+      var rm = h("button", "btn small shot-rm", "Remove"); rm.type = "button";
+      rm.addEventListener("click", function () {
+        if (it.url) URL.revokeObjectURL(it.url);
+        if (it.k) SHOT_GONE.push(it.k);
+        SHOTS.splice(SHOTS.indexOf(it), 1);
+        renderShotPreview();
+      });
+      side.appendChild(rm);
+      row.appendChild(side);
+      box.appendChild(row);
+    });
+    box.hidden = !SHOTS.length;
   }
-  function setShot(blob, remove) {
-    if (SHOT.url) URL.revokeObjectURL(SHOT.url);
-    SHOT = { blob: blob, url: blob ? URL.createObjectURL(blob) : "", remove: !!remove };
+  function resetShot() {
+    SHOTS.forEach(function (it) { if (it.url) URL.revokeObjectURL(it.url); });
+    SHOTS = []; SHOT_GONE = [];
+    $("f-shot").value = "";
     renderShotPreview();
   }
-  function resetShot() { setShot(null, false); $("f-shot").value = ""; }
   function loadShotForEdit(t) {
     resetShot();
-    if (!t.shot) return;
-    shotGet(t.id).then(function (b) {
-      if (b && editingId === t.id && !SHOT.blob && !SHOT.remove) {
-        if (SHOT.url) URL.revokeObjectURL(SHOT.url);
-        SHOT = { blob: null, url: URL.createObjectURL(b), remove: false, kept: true };
+    var list = shotList(t);
+    if (!list.length) return;
+    SHOTS = list.map(function (x) { return { k: x.k, c: x.c || "", blob: null, url: "", pending: true }; });
+    renderShotPreview();
+    SHOTS.forEach(function (it) {
+      shotGet(it.k).then(function (b) {
+        if (editingId !== t.id || SHOTS.indexOf(it) < 0) return;
+        it.pending = false;
+        if (b) it.url = URL.createObjectURL(b);
         renderShotPreview();
-      }
-    }).catch(function () {});
+      }).catch(function () { it.pending = false; renderShotPreview(); });
+    });
   }
   function takeImage(file) {
-    if (!file || !/^image\//.test(file.type)) { toast("That is not an image"); return; }
-    shrinkImage(file).then(function (b) { setShot(b, false); toast("Screenshot attached. Save the trade to keep it."); })
-      .catch(function () { toast("Could not read that image"); });
+    if (!file || !/^image\//.test(file.type)) { toast("That is not an image"); return Promise.resolve(); }
+    if (SHOTS.length >= MAX_SHOTS) { toast("Up to " + MAX_SHOTS + " screenshots per trade"); return Promise.resolve(); }
+    return shrinkImage(file).then(function (b) {
+      if (SHOTS.length >= MAX_SHOTS) return;
+      SHOTS.push({ k: null, c: "", blob: b, url: URL.createObjectURL(b) });
+      renderShotPreview();
+      toast("Screenshot added. Save the trade to keep it.");
+    }).catch(function () { toast("Could not read that image"); });
   }
   function saveShotFor(id, doc) {
-    if (SHOT.blob) {
-      doc.shot = true;
-      shotPut(id, SHOT.blob).catch(function () { toast("This browser would not store the screenshot"); });
-    } else if (SHOT.remove) {
-      delete doc.shot;
-      shotDel(id).catch(function () {});
-    } else if (SHOT.kept) {
-      doc.shot = true;
-    }
+    var list = [];
+    SHOTS.forEach(function (it) {
+      var key = it.k || newShotKey(id);
+      if (it.blob) shotPut(key, it.blob).catch(function () { toast("This browser would not store a screenshot"); });
+      list.push({ k: key, c: String(it.c || "").trim().slice(0, 140) });
+    });
+    var keep = {};
+    list.forEach(function (x) { keep[x.k] = true; });
+    var gone = SHOT_GONE.filter(function (k) { return !keep[k]; });
+    gone.forEach(function (k) { shotDel(k).catch(function () {}); });
+    cloudShotRemove(gone);
+    if (list.length) { doc.shots = list; doc.shot = true; }
+    else { delete doc.shots; delete doc.shot; }
   }
   function openShot(id) {
     var modal = $("shot-modal"), box = $("shot-view");
+    var t = trades.filter(function (x) { return x.id === id; })[0];
     clear(box);
     box.appendChild(h("p", "note", "Loading..."));
     modal.hidden = false;
-    shotGet(id).then(function (b) {
+    var list = t ? shotList(t) : [];
+    Promise.all(list.map(function (it) { return shotGet(it.k).catch(function () { return null; }); })).then(function (blobs) {
       clear(box);
-      if (!b) { box.appendChild(h("p", "note", "This screenshot is not stored on this device. This backup or browser does not hold it. Backups made before screenshots were added do not include them.")); return; }
-      var im = document.createElement("img");
-      im.alt = "Trade screenshot"; im.src = URL.createObjectURL(b);
-      box.appendChild(im);
-    }).catch(function () { clear(box); box.appendChild(h("p", "note", "Could not open the screenshot store.")); });
+      var shown = 0;
+      list.forEach(function (it, i) {
+        if (!blobs[i]) return;
+        var fig = h("figure");
+        var im = document.createElement("img");
+        im.alt = it.c || "Trade screenshot"; im.src = URL.createObjectURL(blobs[i]);
+        fig.appendChild(im);
+        if (it.c) fig.appendChild(h("figcaption", "", it.c));
+        box.appendChild(fig); shown++;
+      });
+      if (!shown) box.appendChild(h("p", "note", "These screenshots are not stored on this device. This backup or browser does not hold them. Backups made before screenshots were added do not include them."));
+    });
   }
   function initShotUI() {
-    $("f-shot").addEventListener("change", function (e) { takeImage(e.target.files && e.target.files[0]); e.target.value = ""; });
+    $("f-shot").addEventListener("change", function (e) {
+      var files = [].slice.call(e.target.files || []);
+      e.target.value = "";
+      files.reduce(function (p, f) { return p.then(function () { return takeImage(f); }); }, Promise.resolve());
+    });
     document.addEventListener("paste", function (e) {
       var items = (e.clipboardData && e.clipboardData.items) || [];
       for (var i = 0; i < items.length; i++) {
@@ -2367,7 +2428,10 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
           }).catch(function () { /* one screenshot failing must not stop the rest */ });
         });
       });
-      var rm = goneIds.filter(function (id) { return have[id + ".jpg"]; }).map(function (id) { return uid + "/" + id + ".jpg"; });
+      var rm = [];
+      Object.keys(have).forEach(function (name) {
+        goneIds.forEach(function (g) { if (name === g + ".jpg" || name.indexOf(g + "_") === 0) rm.push(uid + "/" + name); });
+      });
       if (rm.length) chain = chain.then(function () { return store.remove(rm); }).catch(function () {});
       return chain;
     });
@@ -2437,7 +2501,8 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
         });
       });
       return chain.then(function () {
-        var withShot = merged.filter(function (t) { return t.shot; }).map(function (t) { return t.id; });
+        var withShot = [];
+        merged.forEach(function (t) { if (t.shot) shotList(t).forEach(function (x) { withShot.push(x.k); }); });
         return syncShots(uid, withShot, Object.keys(del));
       });
     }).then(function () {
@@ -3965,9 +4030,11 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
       });
     }
     var shots = {};
-    Promise.all(withShot.map(function (t) {
-      return shotGet(t.id).then(function (b) { return b ? toDataUrl(b) : ""; }).catch(function () { return ""; })
-        .then(function (u) { if (u) shots[t.id] = u; });
+    var allKeys = [];
+    withShot.forEach(function (t) { shotList(t).forEach(function (x) { allKeys.push(x.k); }); });
+    Promise.all(allKeys.map(function (k) {
+      return shotGet(k).then(function (b) { return b ? toDataUrl(b) : ""; }).catch(function () { return ""; })
+        .then(function (u) { if (u) shots[k] = u; });
     })).then(function () {
       var doc = { app: "yellow-candle-journal", version: 2, trades: list };
       var n = Object.keys(shots).length;
@@ -3991,8 +4058,10 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
         renderAll();
         var restored = 0;
         var sh = data && !Array.isArray(data) && data.shots && typeof data.shots === "object" ? data.shots : {};
-        Promise.all(list.filter(function (t) { return t.shot && typeof sh[t.id] === "string" && sh[t.id].indexOf("data:image/") === 0; }).map(function (t) {
-          return fetch(sh[t.id]).then(function (r) { return r.blob(); }).then(function (b) { return shotPut(t.id, b); }).then(function () { restored++; }).catch(function () {});
+        var restoreKeys = [];
+        list.forEach(function (t) { if (t.shot) shotList(t).forEach(function (x) { if (typeof sh[x.k] === "string" && sh[x.k].indexOf("data:image/") === 0) restoreKeys.push(x.k); }); });
+        Promise.all(restoreKeys.map(function (k) {
+          return fetch(sh[k]).then(function (r) { return r.blob(); }).then(function (b) { return shotPut(k, b); }).then(function () { restored++; }).catch(function () {});
         })).then(function () {
           toast("Restored " + list.length + (list.length === 1 ? " trade" : " trades") + (restored ? " and " + restored + (restored === 1 ? " screenshot" : " screenshots") : ""));
         });
@@ -4086,15 +4155,22 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
     SHARE_FIELDS.forEach(function (k) { if (t[k] !== undefined && t[k] !== null && t[k] !== "") data[k] = t[k]; });
     var uv = usd(t);
     if (uv !== null) data.usd = uv;
-    var p = Promise.resolve(false);
-    if (t.shot) {
-      p = shotGet(t.id).then(function (blob) {
-        if (!blob) return false;
-        return sb.storage.from("public-shots").upload(uid + "/" + slug + ".jpg", blob, { contentType: "image/jpeg", upsert: true }).then(function (r) { return !r.error; });
-      }).catch(function () { return false; });
-    }
+    var items = shotList(t).slice(0, MAX_SHOTS);
+    var p = Promise.all(items.map(function (it, i) {
+      return shotGet(it.k).then(function (blob) {
+        if (!blob) return null;
+        var path = uid + "/" + slug + "_" + i + ".jpg";
+        return sb.storage.from("public-shots").upload(path, blob, { contentType: "image/jpeg", upsert: true }).then(function (r) { return r.error ? null : { p: path, c: it.c || "" }; });
+      }).catch(function () { return null; });
+    })).then(function (arr) {
+      arr = arr.filter(Boolean);
+      var stale = [uid + "/" + slug + ".jpg"];
+      for (var i = arr.length; i < MAX_SHOTS; i++) stale.push(uid + "/" + slug + "_" + i + ".jpg");
+      sb.storage.from("public-shots").remove(stale).catch(function () {});
+      if (arr.length) data._shots = arr;
+      return arr.length > 0;
+    });
     return p.then(function (hasShot) {
-      if (hasShot) data._shot = uid + "/" + slug + ".jpg";
       return sb.from("shared_trades").upsert({ slug: slug, trade_id: t.id, user_id: uid, data: data, has_shot: hasShot, updated_at: new Date().toISOString() }, { onConflict: "slug" });
     }).then(function (r) {
       if (r.error) throw r.error;
@@ -4106,7 +4182,9 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
     var slug = shared[t.id];
     return sb.from("shared_trades").delete().eq("slug", slug).then(function (r) {
       if (r.error) throw r.error;
-      sb.storage.from("public-shots").remove([sbUser.id + "/" + slug + ".jpg"]).catch(function () {});
+      var gonePaths = [sbUser.id + "/" + slug + ".jpg"];
+      for (var gi = 0; gi < MAX_SHOTS; gi++) gonePaths.push(sbUser.id + "/" + slug + "_" + gi + ".jpg");
+      sb.storage.from("public-shots").remove(gonePaths).catch(function () {});
       delete shared[t.id];
       renderLog();
     });
@@ -4209,13 +4287,21 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
     if (grid.children.length === 1) grid.style.gridTemplateColumns = "minmax(0, 1fr)";
 
     if (t.notes) { var c3 = pubCard("Notes"); c3.appendChild(h("div", "pub-notes", t.notes)); wrap.appendChild(c3); }
-    if (d.has_shot && t._shot) {
-      var c4 = pubCard("Chart"); c4.className += " pub-shot";
-      var im = document.createElement("img");
-      im.alt = "Chart screenshot of this trade"; im.loading = "lazy";
-      im.src = SB_URL + "/storage/v1/object/public/public-shots/" + t._shot.split("/").map(encodeURIComponent).join("/");
-      im.addEventListener("error", function () { c4.remove(); });
-      c4.appendChild(im); wrap.appendChild(c4);
+    var pics = Array.isArray(t._shots) ? t._shots : (t._shot ? [{ p: t._shot, c: "" }] : []);
+    if (d.has_shot && pics.length) {
+      var c4 = pubCard(pics.length > 1 ? "Charts" : "Chart"); c4.className += " pub-shot";
+      pics.forEach(function (pc) {
+        if (!pc || typeof pc.p !== "string") return;
+        var fig = h("figure");
+        var im = document.createElement("img");
+        im.alt = pc.c || "Chart screenshot of this trade"; im.loading = "lazy";
+        im.src = SB_URL + "/storage/v1/object/public/public-shots/" + pc.p.split("/").map(encodeURIComponent).join("/");
+        im.addEventListener("error", function () { fig.remove(); });
+        fig.appendChild(im);
+        if (pc.c) fig.appendChild(h("figcaption", "", String(pc.c)));
+        c4.appendChild(fig);
+      });
+      wrap.appendChild(c4);
     }
     if (t.link && /^https?:\/\//i.test(t.link)) {
       var c5 = pubCard("Chart link");

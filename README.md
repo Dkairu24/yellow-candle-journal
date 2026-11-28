@@ -15,7 +15,7 @@ Both live copies are the same app and update when changes are pushed to GitHub.
 - Log trades with entry, stop, exit and lot size. Results show in USD or R, with a $ / R switch.
 - Overview, calendar, patterns and a trades list, with filters.
 - Pre-trade checklist and setup grade.
-- Attach a chart screenshot to each trade.
+- Add up to 6 chart screenshots per trade, each with a caption.
 - Result cards and recap cards you can save as images.
 - Share a single trade as a public link. Nothing is public until you press Share on a trade, and you can switch a link off at any time.
 - Works on phone and desktop.
