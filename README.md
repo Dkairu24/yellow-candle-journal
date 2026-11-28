@@ -24,6 +24,17 @@ Both live copies are the same app and update when changes are pushed to GitHub.
 
 Trades are saved in your own browser. Sign in to also keep them in your own account and sync across devices. Use **Backup** to download your trades and screenshots as a file and **Restore** to load them again.
 
+## How it is built
+
+Plain HTML, CSS and JavaScript. No framework and no build step: push to GitHub and both live copies update.
+
+- `index.html`: the page structure and the order the scripts load in.
+- `styles.css`: all styling, including the phone layout.
+- `js/`: the app, one file per area, loaded in this order: `core` (helpers, dollars or R), `stats`, `log`, `form`, `filters`, `calendar`, `insights`, `screenshots`, `sync`, `motion`, `landing`, `checklist`, `recap`, `import`, `cards`, `storage`, `share`, `public` and `app` (starts everything).
+- `supabase_setup.sql` and `supabase_share.sql`: the backend setup.
+
+The scripts share one global scope, so keep the load order in `index.html`. After a change, bump the `?v=` number on the file links so browsers fetch the new version.
+
 ## Setup (for the sync and sharing backend)
 
 Run these once in the Supabase SQL Editor:
