@@ -43,12 +43,17 @@ export function gradeOf(t) {
   var p = t.chkS / t.chkN;
   return p >= 0.9 ? "A" : p >= 0.7 ? "B" : "C";
 }
+var CIRC = 2 * Math.PI * 52; // circumference of the ring (radius 52)
 function updateCheckScore() {
   var total = CHECKLIST.length;
   var ticked = CHECKLIST.filter(function (c) { return CHK[c.id]; });
   var p = total ? ticked.length / total : 0;
   var grade = !ticked.length ? "" : p >= 0.9 ? "A" : p >= 0.7 ? "B" : "C";
   $("check-score").textContent = ticked.length + "/" + total;
+  // the ring fills as you tick; its colour follows the grade
+  var fill = $("check-ring-fill");
+  fill.style.strokeDashoffset = String(CIRC * (1 - p));
+  $("check-ring").className = "score-ring" + (grade ? " g" + grade : "");
   var gp = $("check-grade");
   gp.textContent = grade || "-";
   gp.className = "grade-pill" + (grade ? " " + grade : "");

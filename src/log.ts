@@ -8,7 +8,7 @@ import { populateFilters, renderFilterSummary } from "./filters";
 import { renderInsights } from "./insights";
 import { updateLanding } from "./landing";
 import { runMotion } from "./motion";
-import { renderBreakdown, renderCurve, renderDaily, renderStats, sorted } from "./stats";
+import { renderBreakdown, renderCurve, renderDaily, renderPace, renderStats, sorted } from "./stats";
 
 /* ---------- log ---------- */
 export function renderLog() {
@@ -106,6 +106,7 @@ export function renderAll() {
   populateFilters();
   renderFilterSummary();
   renderStats();
+  renderPace();
   renderInsights();
   renderCurve();
   renderDaily();

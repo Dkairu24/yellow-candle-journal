@@ -77,8 +77,8 @@ export function axisLbl(v) {
   return sign + "$" + (a >= 1000 ? (Math.round(a / 100) / 10) + "k" : Math.round(a));
 }
 export function fmtV(v) { return dollarMode() ? money(v) : fmtR(v); }
-export function vd() {
-  var l = view();
+/** The trades as the screen shows them: in dollar mode each copy carries its dollar result in `r`. */
+export function toDisplay(l: Trade[]): Trade[] {
   if (!dollarMode()) return l;
   return l.filter(function (t) { return usd(t) !== null; }).map(function (t) {
     var c: any = {}, k;
@@ -89,6 +89,7 @@ export function vd() {
     return c;
   });
 }
+export function vd() { return toDisplay(view()); }
 function dollarModeAvail() { return riskUsd > 0 || trades.some(function (t) { return hasVal(t.lots) && usd(t) !== null; }); }
 function setUnit(u) {
   UNIT = u;
@@ -100,7 +101,7 @@ function syncUnitUI() {
   var on = dollarMode() ? "$" : "R";
   [].forEach.call(document.querySelectorAll("#unit-seg button"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-unit") === on)); });
 }
-function openRisk() {
+export function openRisk() {
   $("risk-in").value = riskUsd > 0 ? String(riskUsd) : "";
   $("risk-modal").hidden = false;
   setTimeout(function () { $("risk-in").focus(); }, 30);

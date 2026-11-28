@@ -3,7 +3,7 @@
 
 import { weekdayOf } from "./calendar";
 import { gradeOf } from "./checklist";
-import { $, OPTIONS, axisLbl, clear, dollarMode, fmtDate, fmtV, h, rClass, s, trades, vd } from "./core";
+import { $, OPTIONS, axisLbl, clear, dollarMode, fmtDate, fmtV, h, rClass, s, toDisplay, todayIso, trades, vd } from "./core";
 
 /* ---------- stats ---------- */
 export function sorted(list?) {
@@ -140,6 +140,29 @@ export function renderDaily() {
     if (i % every === 0 && n - 1 - i >= every / 2 || i === n - 1) svg.appendChild(s("text", { x: (x0 + bw / 2).toFixed(1), y: H - 6, "text-anchor": "middle" }, String(parseInt(d.slice(8), 10))));
   });
   box.appendChild(svg);
+}
+/** Today and this week, always across all your trades (the filters do not change them). */
+export function renderPace() {
+  var box = $("pace");
+  if (!box) return;
+  clear(box);
+  var today = todayIso();
+  var d = new Date(today + "T00:00:00");
+  var back = (d.getDay() + 6) % 7; // days since Monday
+  d.setDate(d.getDate() - back);
+  var weekStart = d.getFullYear() + "-" + (d.getMonth() < 9 ? "0" : "") + (d.getMonth() + 1) + "-" + (d.getDate() < 10 ? "0" : "") + d.getDate();
+  var all = toDisplay(trades);
+  function cell(label: string, from: string) {
+    var l = all.filter(function (t) { return t.date >= from && t.date <= today; });
+    var sum = l.reduce(function (a, t) { return a + t.r; }, 0);
+    var c = h("div", "pace-c");
+    c.appendChild(h("span", "pace-l", label));
+    c.appendChild(h("span", "pace-v num " + (l.length ? rClass(sum) : "zero"), l.length ? fmtV(Math.round(sum * 100) / 100) : "-"));
+    c.appendChild(h("span", "pace-n", l.length ? l.length + (l.length === 1 ? " trade" : " trades") : "No trades"));
+    return c;
+  }
+  box.appendChild(cell("Today", today));
+  box.appendChild(cell("This week", weekStart));
 }
 export function renderStats() {
   var st = computeStats(vd());

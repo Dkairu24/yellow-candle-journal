@@ -1,7 +1,7 @@
 /* The Yellow Candle journal: Motion (anime.js).
    An ES module: it imports what it needs from the other files. */
 
-import { $, editingId } from "./core";
+import { $, editingId, openRisk } from "./core";
 import { FILTER, view } from "./filters";
 import { closeDrawer, drawerOpen, openDrawer, resetForm } from "./form";
 import { sumR } from "./insights";
@@ -96,6 +96,7 @@ function initShell() {
   $("fab").addEventListener("click", function () { if (editingId) resetForm(); openDrawer(); });
   $("empty-log").addEventListener("click", function () { openDrawer(); });
   $("empty-import").addEventListener("click", function () { $("broker").click(); });
+  $("empty-risk").addEventListener("click", function () { openRisk(); });
   $("flt-toggle").addEventListener("click", function () {
     var open = !$("filters").classList.contains("open");
     $("filters").classList.toggle("open", open);

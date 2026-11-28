@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="description" content="A trade journal for supply and demand traders. Log every trade, see your results in dollars or R, and find which setups pay.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Yellow Candle">
+<meta property="og:title" content="The Yellow Candle: trade journal">
+<meta property="og:description" content="Journal every trade. See what actually pays.">
+<meta property="og:image" content="https://yellow-candle-journal.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Yellow Candle trade journal with a row of gold and red candles">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Yellow Candle: trade journal">
+<meta name="twitter:description" content="Journal every trade. See what actually pays.">
+<meta name="twitter:image" content="https://yellow-candle-journal.vercel.app/og-image.png">
 <meta name="theme-color" content="#0E0E0C">
 <title>Yellow Candle Journal</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 40'%3E%3Crect width='22' height='40' fill='black'/%3E%3Cline x1='11' y1='0' x2='11' y2='40' stroke='%23FFD43B' stroke-width='3'/%3E%3Crect x='2' y='9' width='18' height='22' fill='%23FFD43B'/%3E%3C/svg%3E">
@@ -137,12 +150,18 @@
     <div class="view" id="view-overview" data-view="overview">
   <section class="panel empty-hero" id="empty-hero" hidden>
     <h2>Log your first trade</h2>
-    <p>Enter your entry, stop and exit. The journal works out R, scores the setup and starts finding your patterns.</p>
+    <p>Enter your entry, stop, exit and lot size. The journal works out R and dollars, scores the setup and starts finding your patterns.</p>
     <div class="row">
       <button class="btn primary" id="empty-log" type="button">Log a trade</button>
       <button class="btn" id="empty-import" type="button">Import from your broker</button>
     </div>
+    <ol class="empty-steps">
+      <li><b>Set your risk</b><span>Optional. A flat dollar amount for trades with no lot size.</span><button class="acct-link" id="empty-risk" type="button">Set risk per trade</button></li>
+      <li><b>Log a trade</b><span>Prices and lot size are enough. Add tags and notes later.</span></li>
+      <li><b>Review your patterns</b><span>After about 20 trades, Patterns shows what pays and what costs you.</span></li>
+    </ol>
   </section>
+  <section class="pace needs-trades" id="pace" aria-label="Today and this week"></section>
   <div class="glow-wrap needs-trades" aria-hidden="true"><div class="glow off" id="glow"></div></div>
   <section class="stats needs-trades" id="stats" aria-label="Summary"></section>
 
@@ -163,7 +182,7 @@
   </section>
   </div>
   <section class="panel needs-trades" id="ins-panel">
-    <div class="panel-head">
+    <div class="panel-head stack">
       <h2>Discipline check</h2>
       <span class="sub">Red: pay attention. Gold: what is working.</span>
     </div>
@@ -185,7 +204,7 @@
 
     <div class="view" id="view-patterns" data-view="patterns" hidden>
   <section class="panel bare" id="pat-panel">
-    <div class="panel-head">
+    <div class="panel-head stack">
       <h2>Patterns</h2>
       <span class="sub">Which setups pay. Wait for 20+ trades in a group before trusting it.</span>
     </div>
@@ -205,13 +224,13 @@
 
     <div class="view" id="view-checklist" data-view="checklist" hidden>
   <section class="panel" id="check-panel">
-    <div class="panel-head">
+    <div class="panel-head stack">
       <h2>Before you enter</h2>
       <span class="sub">Tick what is true before you enter. The score is saved with the trade.</span>
     </div>
     <div class="check-wrap">
       <div class="check-score" aria-live="polite">
-        <div class="score-line"><span class="score-num num" id="check-score">0/0</span><span class="grade-pill" id="check-grade">-</span></div>
+        <div class="score-line"><div class="score-ring" id="check-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="sr-track" cx="60" cy="60" r="52"/><circle class="sr-fill" id="check-ring-fill" cx="60" cy="60" r="52"/></svg><span class="score-num num" id="check-score">0/0</span></div><span class="grade-pill" id="check-grade">-</span></div>
         <div class="score-verdict" id="check-verdict"></div>
         <div class="chips" id="check-missing"></div>
         <div class="row">
