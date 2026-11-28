@@ -185,22 +185,33 @@ function renderAcct() {
   out.hidden = !!sbUser || recovering;
   inn.hidden = !sbUser || recovering;
   $("acct-new").hidden = !recovering;
+  syncAcctTitle();
   applyBtn();
   updateBanner();
   if (sbUser) $("acct-email").textContent = sbUser.email || "your account";
 }
 var INTRO_SIGNIN = "Sign in to keep your trades and screenshots in your own account, on every device. Without signing in, the journal still works on this device only.";
-var acctMode = "signin";
+var INTRO_SIGNUP = "Create an account to keep your trades and screenshots on every device. Your trades stay private to you.";
+var INTRO_RESET = "Enter the email you signed up with and we will send you a link to choose a new password.";
+var acctMode = "signin"; // "signin" | "signup" | "reset"
+/** The window title follows what the person is doing: signing in, creating an account, resetting, or already signed in. */
+function syncAcctTitle() {
+  var t = sbUser ? "Your account" : recovering ? "Choose a new password" : acctMode === "signup" ? "Create your account" : acctMode === "reset" ? "Reset your password" : "Sign in";
+  $("acct-title").textContent = t;
+}
 function setAcctMode(m) {
   acctMode = m;
-  var reset = m === "reset";
-  $("acct-title").textContent = reset ? "Reset your password" : "Your account";
-  $("acct-intro").textContent = reset ? "Enter the email you signed up with and we will send you a link to choose a new password." : INTRO_SIGNIN;
+  var reset = m === "reset", signup = m === "signup";
+  syncAcctTitle();
+  $("acct-intro").textContent = reset ? INTRO_RESET : signup ? INTRO_SIGNUP : INTRO_SIGNIN;
   $("acct-pw-f").hidden = reset;
-  $("acct-btns").hidden = reset;
-  $("acct-forgot-p").hidden = reset;
+  $("acct-btns").hidden = reset || signup;
+  $("acct-forgot-p").hidden = reset || signup;
+  $("acct-create-row").hidden = !signup;
   $("acct-reset-row").hidden = !reset;
-  $("acct-back-p").hidden = !reset;
+  $("acct-back-p").hidden = !(reset || signup);
+  $("acct-back").textContent = signup ? "Already have an account? Sign in" : "Back to sign in";
+  $("acct-pw").setAttribute("autocomplete", signup ? "new-password" : "current-password");
   acctMsg("");
   if (reset) setTimeout(function () { $("acct-email-in").focus(); }, 30);
 }
@@ -234,7 +245,8 @@ export function initSync() {
       toast("Signed in. Syncing your trades.");
     }).catch(function () { acctMsg("Could not reach the sign-in service.", true); });
   });
-  $("acct-signup").addEventListener("click", function () {
+  $("acct-signup").addEventListener("click", function () { setAcctMode("signup"); });
+  $("acct-create").addEventListener("click", function () {
     var c = creds(); if (!c) return;
     acctMsg("Creating your account...");
     sb.auth.signUp({ email: c.email, password: c.password, options: { emailRedirectTo: location.href.split("#")[0] } }).then(function (r) {
@@ -245,7 +257,7 @@ export function initSync() {
     }).catch(function () { acctMsg("Could not reach the sign-in service.", true); });
   });
   $("acct-email-in").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (acctMode === "reset") $("acct-sendreset").click(); else $("acct-pw").focus(); } });
-  $("acct-pw").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("acct-signin").click(); } });
+  $("acct-pw").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (acctMode === "signup") $("acct-create").click(); else $("acct-signin").click(); } });
   $("acct-reset").addEventListener("click", function () { setAcctMode("reset"); });
   $("acct-back").addEventListener("click", function () { setAcctMode("signin"); });
   $("acct-sendreset").addEventListener("click", function () {

@@ -609,7 +609,7 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
 .cal-c.wk .cal-d, .cal-h.wk { color: var(--gold); }
 
 /* ---------- close (X) buttons and the account window ---------- */
-.btn.icon-close { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border-color: var(--line-2); color: var(--fg); flex: none; }
+.btn.icon-close { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 10px; border-color: var(--line-2); color: var(--fg); flex: none; }
 .btn.icon-close:hover { background: rgba(255, 255, 255, 0.07); border-color: #5a594e; }
 .modal-box.acct-box { max-width: 420px; padding: 28px 28px 24px; }
 .acct-box .modal-head h2 { font-size: 21px; }

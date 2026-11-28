@@ -287,12 +287,13 @@
 </div>
 <div id="acct-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="acct-title">
   <div class="modal-box acct-box">
-    <div class="modal-head"><h2 id="acct-title">Your account</h2><button class="btn small icon-close" id="acct-close" type="button" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="modal-head"><h2 id="acct-title">Sign in</h2><button class="btn small icon-close" id="acct-close" type="button" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div id="acct-out">
       <p class="note" id="acct-intro" style="margin-top:0">Sign in to keep your trades and screenshots in your own account, on every device. Without signing in, the journal still works on this device only.</p>
       <div class="field"><label for="acct-email-in">Email</label><input id="acct-email-in" type="email" autocomplete="email"></div>
       <div class="field" id="acct-pw-f"><label for="acct-pw">Password</label><input id="acct-pw" type="password" autocomplete="current-password" minlength="8"></div>
       <div class="acct-row" id="acct-btns"><button class="btn primary" id="acct-signin" type="button">Sign in</button><button class="btn" id="acct-signup" type="button">Create account</button></div>
+      <div class="acct-row" id="acct-create-row" hidden><button class="btn primary" id="acct-create" type="button">Create account</button></div>
       <div class="acct-row" id="acct-reset-row" hidden><button class="btn primary" id="acct-sendreset" type="button">Send reset link</button></div>
       <p id="acct-forgot-p" style="margin:14px 0 0"><button class="acct-link" id="acct-reset" type="button">Forgot your password?</button></p>
       <p id="acct-back-p" style="margin:14px 0 0" hidden><button class="acct-link" id="acct-back" type="button">Back to sign in</button></p>
