@@ -1,6 +1,11 @@
-"use strict";
 /* The Yellow Candle journal: Motion (anime.js).
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, editingId } from "./core";
+import { FILTER, view } from "./filters";
+import { closeDrawer, drawerOpen, openDrawer, resetForm } from "./form";
+import { sumR } from "./insights";
+import { VIEWS, curView, refreshCharts, showView } from "./stats";
 
 /* ---------- motion (anime.js; switched off when the device asks for reduced motion) ---------- */
 var REDUCE = false;
@@ -9,14 +14,14 @@ var motionSig = "";
 var settleTimer = null;
 var lastVals = {};
 var motionAnims = [];
-var landingAnims = [];
-function tracked(an, list) {
+export var landingAnims = [];
+export function tracked(an: any, list: any): any {
   return { stagger: an.stagger, animate: function () { var a = an.animate.apply(an, arguments); list.push(a); return a; } };
 }
-function finishAll(list) {
+export function finishAll(list) {
   list.splice(0).forEach(function (a) { try { if (a.complete) a.complete(); } catch (e) { /* already done */ } });
 }
-function A() { return !REDUCE && window.anime && window.anime.animate ? window.anime : null; }
+export function A(): any { return !REDUCE && window.anime && window.anime.animate ? window.anime : null; }
 function updateGlow() {
   var g = $("glow");
   if (!g) return;
@@ -49,7 +54,7 @@ function reveal(an, sel, total) {
   if (!els.length) return;
   an.animate(els, { opacity: [0, 1], translateY: [8, 0], duration: 420, delay: an.stagger(Math.min(40, total / els.length)), ease: "outQuad" });
 }
-function runMotion() {
+export function runMotion() {
   var l = view();
   var sig = l.length + "|" + sumR(l).toFixed(3) + "|" + JSON.stringify(FILTER);
   var first = motionSig === "";
@@ -60,11 +65,11 @@ function runMotion() {
   if (!rawAn || !changed) return;
   var an = tracked(rawAn, motionAnims);
   countUp(an, first);
-  var line = curView === "overview" ? document.querySelector("#curve-wrap polyline.line") : null;
+  var line = curView === "overview" ? document.querySelector<SVGPolylineElement>("#curve-wrap polyline.line") : null;
   var len = 0;
   try { if (line && line.getTotalLength) len = line.getTotalLength(); } catch (e) { len = 0; }
   if (line && len) {
-    line.style.strokeDasharray = len;
+    line.style.strokeDasharray = String(len);
     an.animate(line, {
       strokeDashoffset: [len, 0], duration: first ? 1100 : 600, ease: "outCubic",
       onComplete: function () { line.style.strokeDasharray = ""; line.style.strokeDashoffset = ""; }
@@ -77,7 +82,7 @@ function runMotion() {
   clearTimeout(settleTimer);
   settleTimer = setTimeout(function () {
     finishAll(motionAnims);
-    document.querySelectorAll(".ins, .cal-c, #breakdown .cards > *, #log tbody tr, #daily-wrap rect").forEach(function (e) { e.style.opacity = ""; e.style.transform = ""; });
+    document.querySelectorAll<HTMLElement>(".ins, .cal-c, #breakdown .cards > *, #log tbody tr, #daily-wrap rect").forEach(function (e) { e.style.opacity = ""; e.style.transform = ""; });
     document.querySelectorAll("#stats .stat .value[data-final]").forEach(function (e) { e.textContent = e.getAttribute("data-final"); });
   }, 4500);
 }
@@ -105,21 +110,21 @@ function initShell() {
   var rt = null;
   window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(refreshCharts, 160); });
 }
-function initMotion() {
+export function initMotion() {
   initShell();
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     if (drawerOpen) { closeDrawer(); return; }
-    var open = document.querySelector(".modal:not([hidden])");
+    var open = document.querySelector<HTMLElement>(".modal:not([hidden])");
     if (!open) return;
-    var b = open.querySelector(".modal-head .btn");
+    var b = open.querySelector<HTMLElement>(".modal-head .btn");
     if (b) b.click(); else open.hidden = true;
   });
-  document.querySelectorAll(".modal").forEach(function (m) {
+  document.querySelectorAll<HTMLElement>(".modal").forEach(function (m) {
     new MutationObserver(function () {
       var an = A();
       var box = m.querySelector(".modal-box");
-      document.body.classList.toggle("modal-open", [].some.call(document.querySelectorAll(".modal"), function (x) { return !x.hidden; }));
+      document.body.classList.toggle("modal-open", [].some.call(document.querySelectorAll<HTMLElement>(".modal"), function (x: HTMLElement) { return !x.hidden; }));
       if (!m.hidden && an && box) an.animate(box, { opacity: [0, 1], translateY: [14, 0], duration: 260, ease: "outCubic" });
     }).observe(m, { attributes: true, attributeFilter: ["hidden"] });
   });

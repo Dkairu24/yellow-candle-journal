@@ -1,14 +1,17 @@
-"use strict";
 /* The Yellow Candle journal: Recap cards.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { BODY, CARD, CARD_SIZES, DISPLAY, rr, spaced } from "./cards";
+import { $, MON, fmtR, h, toast, todayIso, trades } from "./core";
+import { niceStep, sorted } from "./stats";
 
 /* ---------- recap cards (a period summary, drawn on a canvas, saved as PNG) ---------- */
 var RECAP = { period: "week", from: "", to: "", fmt: "feed", n: 0 };
 
-function isoOf(d) {
+export function isoOf(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-function periodRange(p) {
+export function periodRange(p) {
   var now = new Date();
   var d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   var dow = (d0.getDay() + 6) % 7; // Monday = 0
@@ -243,7 +246,7 @@ function closeRecap() {
   $("recap-modal").hidden = true;
   document.body.style.overflow = "";
 }
-function initRecapUI() {
+export function initRecapUI() {
   $("recap-btn").addEventListener("click", openRecap);
   var fmtBox = $("recap-fmt");
   [["feed", "Feed 4:5"], ["story", "Story 9:16"], ["square", "Square 1:1"]].forEach(function (f) {

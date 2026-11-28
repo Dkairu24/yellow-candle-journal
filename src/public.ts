@@ -1,6 +1,9 @@
-"use strict";
 /* The Yellow Candle journal: The public trade page.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { gradeOf } from "./checklist";
+import { $, SVGNS, clear, fmtDate, fmtPx, fmtR, h, hasVal, money, rClass, s, toArr } from "./core";
+import { SB_KEY, SB_URL } from "./sync";
 
 /* ---------- the public page: read only, one trade ---------- */
 function pubMsg(box, title, text) {
@@ -122,7 +125,7 @@ function renderPublic(box, d, sharedAt) {
   box.appendChild(wrap);
   document.title = (t.pair || "Trade") + " " + (t.dir || "") + " " + (hasVal(t.usd) ? money(Number(t.usd)) : fmtR(Number(t.r))) + " | The Yellow Candle";
 }
-function bootPublic(slug) {
+export function bootPublic(slug) {
   document.body.classList.add("public-mode");
   document.body.classList.remove("booting");
   var box = $("public");

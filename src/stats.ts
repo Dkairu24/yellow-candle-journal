@@ -1,9 +1,12 @@
-"use strict";
 /* The Yellow Candle journal: Stats, equity curve and pattern breakdown.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { weekdayOf } from "./calendar";
+import { gradeOf } from "./checklist";
+import { $, OPTIONS, axisLbl, clear, dollarMode, fmtDate, fmtV, h, rClass, s, trades, vd } from "./core";
 
 /* ---------- stats ---------- */
-function sorted(list) {
+export function sorted(list?) {
   return (list || trades).slice().sort(function (a, b) {
     if (a.date !== b.date) return a.date < b.date ? -1 : 1;
     return (a.created || 0) - (b.created || 0);
@@ -34,22 +37,22 @@ function computeStats(list) {
     rulesN: ruleAnswers.length
   };
 }
-var VIEWS = ["overview", "calendar", "patterns", "trades", "checklist"];
-var curView = "overview";
+export var VIEWS = ["overview", "calendar", "patterns", "trades", "checklist"];
+export var curView = "overview";
 var chartsDirty = false, lastChartW = 0;
-function refreshCharts() {
+export function refreshCharts() {
   var w = $("curve-wrap");
   if (!w || curView !== "overview") return;
   var cw = Math.round(w.clientWidth);
   if (!cw) return;
   if (chartsDirty || cw !== lastChartW) { renderCurve(); renderDaily(); }
 }
-function showView(v, quiet) {
+export function showView(v, quiet?) {
   if (VIEWS.indexOf(v) < 0) v = "overview";
   var changed = v !== curView;
   curView = v;
   document.body.setAttribute("data-view", v);
-  document.querySelectorAll(".view").forEach(function (el) {
+  document.querySelectorAll<HTMLElement>(".view").forEach(function (el) {
     var on = el.getAttribute("data-view") === v;
     el.hidden = !on;
     if (on && changed) { el.classList.remove("view-in"); void el.offsetWidth; el.classList.add("view-in"); }
@@ -91,7 +94,7 @@ function makeRing(rate, nWin, nLoss) {
   wrap.appendChild(h("div", "", "win rate"));
   return wrap;
 }
-function renderDaily() {
+export function renderDaily() {
   var box = $("daily-wrap");
   if (!box) return;
   var list = vd();
@@ -124,11 +127,11 @@ function renderDaily() {
   });
   box.appendChild(svg);
 }
-function renderStats() {
+export function renderStats() {
   var st = computeStats(vd());
   var box = $("stats");
   clear(box);
-  function tile(label, valueText, cls, hint, lead) {
+  function tile(label, valueText, cls, hint, lead?) {
     var d = h("div", "stat" + (lead ? " lead" : ""));
     d.appendChild(h("div", "label", label));
     d.appendChild(h("div", "value num " + (cls || ""), valueText));
@@ -149,14 +152,14 @@ function renderStats() {
 }
 
 /* ---------- equity curve ---------- */
-function niceStep(x) {
+export function niceStep(x) {
   if (!(x > 0)) return 1;
   var p = Math.pow(10, Math.floor(Math.log(x) / Math.LN10));
   var f = x / p;
   var n = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
   return n * p;
 }
-function renderCurve() {
+export function renderCurve() {
   var wrap = $("curve-wrap");
   var list = sorted(vd());
   var W = Math.round(wrap.clientWidth);
@@ -221,7 +224,7 @@ var GROUPS = [
   ["Displacement", "disp"], ["Fresh zone", "fresh"], ["Followed rules", "rules"],
   ["Weekday", "wday"], ["Direction", "dir"], ["Execution timeframe", "tf"], ["Mindset", "mood"], ["Your tags", "tags"], ["Pair", "pair"]
 ];
-function renderBreakdown() {
+export function renderBreakdown() {
   var box = $("breakdown");
   clear(box);
   var vlist = vd();

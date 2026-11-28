@@ -1,9 +1,14 @@
-"use strict";
 /* The Yellow Candle journal: Filters.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { gradeOf } from "./checklist";
+import { $, clear, h, toArr, todayIso, trades } from "./core";
+import { allTags } from "./form";
+import { renderAll } from "./log";
+import { isoOf, periodRange } from "./recap";
 
 /* ---------- filters (change what the stats, curve, patterns and log show) ---------- */
-var FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "", tag: "" };
+export var FILTER = { period: "all", from: "", to: "", pair: "", dir: "", tf: "", grade: "", tag: "" };
 var TF_ORDER = ["1m", "3m", "5m", "15m", "30m", "1h", "4h"];
 
 function fRange() {
@@ -23,7 +28,7 @@ function fRange() {
 function filtersActive() {
   return FILTER.period !== "all" || !!FILTER.pair || !!FILTER.dir || !!FILTER.tf || !!FILTER.grade || !!FILTER.tag;
 }
-function view() {
+export function view() {
   var r = fRange();
   return trades.filter(function (t) {
     if (r && (t.date < r[0] || t.date > r[1])) return false;
@@ -51,7 +56,7 @@ function fillSelect(id, values, allLabel, key) {
   if (keep && values.indexOf(keep) < 0) { FILTER[key] = ""; keep = ""; }
   sel.value = keep || "";
 }
-function populateFilters() {
+export function populateFilters() {
   var pairs = {}, tfs = {};
   trades.forEach(function (t) {
     if (t.pair) pairs[t.pair] = true;
@@ -76,7 +81,7 @@ function populateFilters() {
   $("flt-from").value = FILTER.from;
   $("flt-to").value = FILTER.to;
 }
-function renderFilterSummary() {
+export function renderFilterSummary() {
   var total = trades.length;
   var shown = view().length;
   var active = filtersActive();
@@ -95,7 +100,7 @@ function renderFilterSummary() {
   $("flt-clear").hidden = !active;
   $("filters").classList.toggle("on", active);
 }
-function initFilterUI() {
+export function initFilterUI() {
   [["flt-pair", "pair"], ["flt-tag", "tag"], ["flt-dir", "dir"], ["flt-tf", "tf"], ["flt-grade", "grade"]].forEach(function (p) {
     $(p[0]).addEventListener("change", function (e) { FILTER[p[1]] = e.target.value; renderAll(); });
   });

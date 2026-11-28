@@ -1,19 +1,21 @@
-"use strict";
 /* The Yellow Candle journal: Calendar.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, clear, dollarMode, fmtDate, fmtV, h, moneyShort, todayIso, vd } from "./core";
+import { sorted } from "./stats";
 
 /* ---------- calendar (one month at a time, follows the filters) ---------- */
 var CAL = null;
 var WDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 var WDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 var MONTHS_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-function weekdayOf(iso) {
+export function weekdayOf(iso) {
   var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
   if (!m) return "";
   return WDAY_FULL[new Date(+m[1], +m[2] - 1, +m[3]).getDay()];
 }
-function p2(n) { return (n < 10 ? "0" : "") + n; }
-function renderCalendar() {
+export function p2(n) { return (n < 10 ? "0" : "") + n; }
+export function renderCalendar() {
   var box = $("cal-body");
   clear(box);
   var list = vd();
@@ -87,7 +89,7 @@ function renderCalendar() {
   box.appendChild(grid);
   if (weekendN) box.appendChild(h("p", "note", weekendN + (weekendN === 1 ? " weekend trade is" : " weekend trades are") + " not shown as days but is included in the week totals."));
 }
-function initCalendarUI() {
+export function initCalendarUI() {
   function go(dm) {
     if (!CAL) renderCalendar();
     var d = new Date(CAL.y, CAL.m + dm, 1);

@@ -1,6 +1,8 @@
-"use strict";
 /* The Yellow Candle journal: Pre-trade checklist.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, clear, h, toast } from "./core";
+import { openDrawer } from "./form";
 
 /* ---------- pre-trade checklist (your rules, saved in this browser) ---------- */
 var CHK_KEY = "yellow-candle-checklist-v1";
@@ -16,7 +18,7 @@ var CHK_DEFAULT = [
   { id: "rr", text: "At least 3R to target, or to the next BOS" },
   { id: "mind", text: "I am calm: no chasing, no revenge" }
 ];
-var CHK = {};
+export var CHK: Record<string, boolean> = {};
 var chkEditing = false;
 function defaultChecklist() { return CHK_DEFAULT.map(function (c) { return { id: c.id, text: c.text }; }); }
 function loadChecklist() {
@@ -32,11 +34,11 @@ function loadChecklist() {
   } catch (e) { /* use the defaults */ }
   return defaultChecklist();
 }
-var CHECKLIST = loadChecklist();
+export var CHECKLIST = loadChecklist();
 function saveChecklist() {
   try { window.localStorage.setItem(CHK_KEY, JSON.stringify(CHECKLIST)); } catch (e) { /* kept for this visit only */ }
 }
-function gradeOf(t) {
+export function gradeOf(t) {
   if (!t || !t.chkN) return "";
   var p = t.chkS / t.chkN;
   return p >= 0.9 ? "A" : p >= 0.7 ? "B" : "C";
@@ -123,12 +125,14 @@ function renderCheckList() {
   actions.appendChild(add); actions.appendChild(reset);
   box.appendChild(actions);
 }
-function renderCheck() {
+export function renderCheck() {
   renderCheckList();
   updateCheckScore();
 }
-function initCheckUI() {
+export function initCheckUI() {
   $("check-edit").addEventListener("click", function () { chkEditing = !chkEditing; renderCheckList(); });
   $("check-clear").addEventListener("click", function () { CHK = {}; renderCheck(); });
   $("check-log").addEventListener("click", function () { openDrawer(); });
 }
+
+export function __set_CHK(value: any) { CHK = value; return value; }

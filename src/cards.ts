@@ -1,10 +1,12 @@
-"use strict";
 /* The Yellow Candle journal: Result cards.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { gradeOf } from "./checklist";
+import { $, MON, dollarMode, fmtPx, fmtR, h, money, toArr, toast, todayIso, trades, usd } from "./core";
 
 /* ---------- result cards (drawn on a canvas, saved as PNG) ---------- */
-var CARD = { trade: null, img: null, fmt: "feed", prices: true, tags: true, handle: "@theyellowcandlefx" };
-var CARD_SIZES = { feed: [1080, 1350], story: [1080, 1920], square: [1080, 1080] };
+export var CARD = { trade: null, img: null, fmt: "feed", prices: true, tags: true, handle: "@theyellowcandlefx" };
+export var CARD_SIZES = { feed: [1080, 1350], story: [1080, 1920], square: [1080, 1080] };
 try {
   var savedHandle = window.localStorage.getItem("yellow-candle-handle");
   if (savedHandle) CARD.handle = savedHandle;
@@ -15,7 +17,7 @@ function cardDate(iso) {
   if (!m) return "";
   return parseInt(m[3], 10) + " " + MON[parseInt(m[2], 10) - 1].toUpperCase() + " " + m[1];
 }
-function spaced(ctx, str, x, y, sp, align) {
+export function spaced(ctx, str, x, y, sp, align) {
   var total = 0, i;
   for (i = 0; i < str.length; i++) total += ctx.measureText(str.charAt(i)).width + sp;
   total -= sp;
@@ -27,7 +29,7 @@ function spaced(ctx, str, x, y, sp, align) {
   }
   return total;
 }
-function rr(ctx, x, y, w, h, r) {
+export function rr(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -53,8 +55,8 @@ function cardTags(t) {
 }
 function isNum(v) { return v !== undefined && v !== null && v !== "" && !isNaN(Number(v)); }
 
-var DISPLAY = '-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif';
-var BODY = '-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif';
+export var DISPLAY = '-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif';
+export var BODY = '-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif';
 
 function drawLevels(ctx, t, x, y, w, h, accent, win) {
   var hasPx = isNum(t.entry) && isNum(t.stop) && isNum(t.exit) && Number(t.entry) !== Number(t.stop);
@@ -95,7 +97,7 @@ function drawLevels(ctx, t, x, y, w, h, accent, win) {
   ctx.fillStyle = win ? "rgba(241,205,96,0.30)" : "rgba(247,123,117,0.26)";
   ctx.fillRect(x1, Math.min(yOf(e), yOf(xt)), x2 - x1, Math.abs(yOf(e) - yOf(xt)));
   // level lines
-  function line(v, color, wd, dash) {
+  function line(v, color, wd, dash?) {
     ctx.strokeStyle = color; ctx.lineWidth = wd; ctx.setLineDash(dash || []);
     ctx.beginPath(); ctx.moveTo(x1, yOf(v)); ctx.lineTo(x2, yOf(v)); ctx.stroke(); ctx.setLineDash([]);
   }
@@ -103,7 +105,7 @@ function drawLevels(ctx, t, x, y, w, h, accent, win) {
   line(e, "#E9E5D8", 3, [12, 10]);
   line(xt, accent, 5);
   // labels on the right, pushed apart so they never overlap
-  var items = [
+  var items: any[] = [
     { v: s, name: "STOP", color: "#F77B75" },
     { v: e, name: "ENTRY", color: "#E9E5D8" },
     { v: xt, name: "EXIT", color: accent }
@@ -259,7 +261,7 @@ function syncCardUI() {
   $("card-img-clear").hidden = !CARD.img;
   $("card-img-btn").textContent = CARD.img ? "Change screenshot" : "Add screenshot";
 }
-function openCard(id) {
+export function openCard(id) {
   var t = trades.filter(function (x) { return x.id === id; })[0];
   if (!t) return;
   CARD.trade = t;
@@ -274,7 +276,7 @@ function closeCard() {
   $("card-modal").hidden = true;
   document.body.style.overflow = "";
 }
-function initCardUI() {
+export function initCardUI() {
   var fmtBox = $("card-fmt");
   [["feed", "Feed 4:5"], ["story", "Story 9:16"], ["square", "Square 1:1"]].forEach(function (f) {
     var b = h("button", "", f[1]);

@@ -26,14 +26,25 @@ Trades are saved in your own browser. Sign in to also keep them in your own acco
 
 ## How it is built
 
-Plain HTML, CSS and JavaScript. No framework and no build step: push to GitHub and both live copies update.
+Vite and TypeScript, with no framework. The app is plain DOM code split into modules.
 
-- `index.html`: the page structure and the order the scripts load in.
-- `styles.css`: all styling, including the phone layout.
-- `js/`: the app, one file per area, loaded in this order: `core` (helpers, dollars or R), `stats`, `log`, `form`, `filters`, `calendar`, `insights`, `screenshots`, `sync`, `motion`, `landing`, `checklist`, `recap`, `import`, `cards`, `storage`, `share`, `public` and `app` (starts everything).
+- `index.html`: the page structure.
+- `src/`: the app, one TypeScript file per area (`core`, `stats`, `log`, `form`, `filters`, `calendar`, `insights`, `screenshots`, `sync`, `motion`, `landing`, `checklist`, `recap`, `import`, `cards`, `storage`, `share`, `public`, `app`), plus `types.ts` (the `Trade` shape), `styles.css` and `main.ts` (the entry point).
 - `supabase_setup.sql` and `supabase_share.sql`: the backend setup.
+- Supabase and anime.js are loaded from a CDN in `index.html`.
 
-The scripts share one global scope, so keep the load order in `index.html`. After a change, bump the `?v=` number on the file links so browsers fetch the new version.
+### Run it on your computer
+
+```bash
+npm install
+npm run dev        # local site with live reload
+npm run typecheck  # TypeScript check
+npm run build      # production build into dist/
+```
+
+### Deploy
+
+Pushing to `main` deploys both copies. Vercel runs `npm run build` (see `vercel.json`) and GitHub Pages builds with the workflow in `.github/workflows/pages.yml`. In the repo settings, Pages must use "GitHub Actions" as its source.
 
 ## Setup (for the sync and sharing backend)
 

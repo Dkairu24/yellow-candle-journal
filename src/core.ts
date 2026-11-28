@@ -1,8 +1,11 @@
-"use strict";
 /* The Yellow Candle journal: Shared helpers, formatting, dollars or R.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
 
-var OPTIONS = {
+import type { Trade } from "./types";
+import { view } from "./filters";
+import { renderAll } from "./log";
+
+export var OPTIONS = {
   dir: ["Long", "Short"],
   tf: ["1m", "3m", "5m", "15m"],
   htf: ["Bullish", "Bearish"],
@@ -15,10 +18,10 @@ var OPTIONS = {
   mood: ["Calm", "Confident", "Rushed", "Bored", "Fear", "FOMO", "Revenge"],
   grade: ["A", "B", "C"]
 };
-var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-var trades = [];
-var shared = {};
+export var trades: Trade[] = [];
+export var shared: Record<string, string> = {};
 /* ---------- dollars or R ---------- */
 var RISK_KEY = "yellow-candle-risk-v1", UNIT_KEY = "yellow-candle-unit-v1";
 var riskUsd = 0, UNIT = "R";
@@ -26,7 +29,7 @@ try {
   riskUsd = Number(window.localStorage.getItem(RISK_KEY)) || 0;
   UNIT = window.localStorage.getItem(UNIT_KEY) === "$" ? "$" : "R";
 } catch (e) { /* defaults */ }
-function hasVal(v) { return v !== undefined && v !== null && v !== "" && isFinite(Number(v)); }
+export function hasVal(v) { return v !== undefined && v !== null && v !== "" && isFinite(Number(v)); }
 /* Dollars per 1.00 lot. Direct = quoted in USD. Inverse = USD is the first currency, so divide by price. */
 function contractFor(pair) {
   var p = String(pair || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -46,39 +49,39 @@ function lotMoney(t, move, px) {
   return v;
 }
 /* dollars risked on this trade: from lot size and stop distance, else your flat risk setting */
-function riskFor(t) {
+export function riskFor(t) {
   if (hasVal(t.entry) && hasVal(t.stop)) {
     var m = lotMoney(t, Math.abs(Number(t.entry) - Number(t.stop)), Number(t.exit) || Number(t.entry));
     if (m !== null && m > 0) return m;
   }
   return riskUsd;
 }
-function usd(t) {
+export function usd(t) {
   var rf = riskFor(t);
   return rf > 0 ? Number(t.r) * rf : null;
 }
-function dollarMode() { return UNIT === "$" && (riskUsd > 0 || trades.some(function (t) { return hasVal(t.lots) && usd(t) !== null; })); }
-function money(v) {
+export function dollarMode() { return UNIT === "$" && (riskUsd > 0 || trades.some(function (t) { return hasVal(t.lots) && usd(t) !== null; })); }
+export function money(v) {
   if (v === null || v === undefined || isNaN(v)) return "-";
   var a = Math.abs(v), sign = v > 0 ? "+" : v < 0 ? "\u2212" : "";
   var txt = a < 10 ? a.toFixed(2) : Math.round(a).toLocaleString("en-US");
   return sign + "$" + txt;
 }
-function moneyShort(v) {
+export function moneyShort(v) {
   var a = Math.abs(v), sign = v > 0 ? "+" : v < 0 ? "\u2212" : "";
   return sign + (a >= 10000 ? (a / 1000).toFixed(0) + "k" : a >= 1000 ? (a / 1000).toFixed(1) + "k" : String(Math.round(a)));
 }
-function axisLbl(v) {
+export function axisLbl(v) {
   var a = Math.abs(v), sign = v > 0 ? "+" : v < 0 ? "\u2212" : "";
   if (!dollarMode()) return sign + Math.abs(Math.round(v * 100) / 100) + "R";
   return sign + "$" + (a >= 1000 ? (Math.round(a / 100) / 10) + "k" : Math.round(a));
 }
-function fmtV(v) { return dollarMode() ? money(v) : fmtR(v); }
-function vd() {
+export function fmtV(v) { return dollarMode() ? money(v) : fmtR(v); }
+export function vd() {
   var l = view();
   if (!dollarMode()) return l;
   return l.filter(function (t) { return usd(t) !== null; }).map(function (t) {
-    var c = {}, k;
+    var c: any = {}, k;
     for (k in t) c[k] = t[k];
     c.rR = t.r;
     c.r = usd(t);
@@ -112,7 +115,7 @@ function saveRisk(v) {
   renderAll();
   toast(riskUsd > 0 ? "Showing dollars at $" + riskUsd + " risk per trade" : "Showing R");
 }
-function initUnitUI() {
+export function initUnitUI() {
   syncUnitUI();
   [].forEach.call(document.querySelectorAll("#unit-seg button"), function (b) {
     b.addEventListener("click", function () {
@@ -132,38 +135,38 @@ function initUnitUI() {
   $("risk-clear").addEventListener("click", function () { saveRisk(0); });
   $("risk-in").addEventListener("keydown", function (e) { if (e.key === "Enter") $("risk-save").click(); });
 }
-var loaded = false;
+export var loaded = false;
 var coll = null;
-var editingId = null;
-var armedDelete = null;
-var armTimer = null;
-var form = {};
-var MULTI = { trigger: true };
-function toArr(v) { return Array.isArray(v) ? v.slice() : (v ? [v] : []); }
+export var editingId: string | null = null;
+export var armedDelete: string | null = null;
+export var armTimer: any = null;
+export var form: any = {};
+export var MULTI = { trigger: true };
+export function toArr(v) { return Array.isArray(v) ? v.slice() : (v ? [v] : []); }
 
-function $(id) { return document.getElementById(id); }
-function h(tag, cls, text) {
+export function $(id: string): any { return document.getElementById(id); }
+export function h(tag: string, cls?: string, text?: any): any {
   var e = document.createElement(tag);
   if (cls) e.className = cls;
   if (text !== undefined && text !== null) e.textContent = text;
   return e;
 }
-var SVGNS = "http://www.w3.org/2000/svg";
-function s(tag, attrs, text) {
+export var SVGNS = "http://www.w3.org/2000/svg";
+export function s(tag: string, attrs?: any, text?: any): any {
   var e = document.createElementNS(SVGNS, tag);
   for (var k in attrs) e.setAttribute(k, attrs[k]);
   if (text !== undefined) e.textContent = text;
   return e;
 }
-function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+export function clear(node: Node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
-function fmtR(v) {
+export function fmtR(v) {
   if (v === null || v === undefined || isNaN(v)) return "-";
   var sign = v > 0 ? "+" : v < 0 ? "−" : "";
   return sign + Math.abs(v).toFixed(2) + "R";
 }
-function rClass(v) { return v > 0 ? "pos" : v < 0 ? "neg" : "zero"; }
-function fmtDate(iso) {
+export function rClass(v) { return v > 0 ? "pos" : v < 0 ? "neg" : "zero"; }
+export function fmtDate(iso) {
   var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
   if (!m) return iso || "";
   return parseInt(m[3], 10) + " " + MON[parseInt(m[2], 10) - 1] + " " + m[1].slice(2);
@@ -187,21 +190,35 @@ function typedDecimals(t) {
   });
   return Math.min(m, 6);
 }
-function fmtPx(v, t) {
+export function fmtPx(v, t) {
   var n = Number(v);
   if (v === null || v === undefined || v === "" || isNaN(n)) return "-";
   var d = t ? Math.max(pairDecimals(t.pair), typedDecimals(t)) : 3;
   return n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
-function todayIso() {
+export function todayIso() {
   var d = new Date();
   var m = String(d.getMonth() + 1).padStart(2, "0");
   var day = String(d.getDate()).padStart(2, "0");
   return d.getFullYear() + "-" + m + "-" + day;
 }
-function toast(msg) {
+export function toast(msg) {
   var t = $("toast");
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(function () { t.classList.remove("show"); }, 2200);
 }
+
+export function __set_trades(value: any) { trades = value; return value; }
+
+export function __set_loaded(value: any) { loaded = value; return value; }
+
+export function __set_editingId(value: any) { editingId = value; return value; }
+
+export function __set_form(value: any) { form = value; return value; }
+
+export function __set_armedDelete(value: any) { armedDelete = value; return value; }
+
+export function __set_armTimer(value: any) { armTimer = value; return value; }
+
+export function __set_shared(value: any) { shared = value; return value; }

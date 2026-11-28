@@ -1,9 +1,13 @@
-"use strict";
 /* The Yellow Candle journal: Landing page.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, loaded, trades } from "./core";
+import { A, finishAll, landingAnims, tracked } from "./motion";
+import { refreshCharts } from "./stats";
+import { sbUser } from "./sync";
 
 /* ---------- landing page (new visitors only) ---------- */
-var authReady = false;
+export var authReady = false;
 var landingDismissed = false;
 try { landingDismissed = window.localStorage.getItem("yc-landing-dismissed") === "1"; } catch (e) { /* shown each visit */ }
 var landingStarted = false;
@@ -87,8 +91,8 @@ function startLanding() {
   auraAnim = rawAn.animate("#landing .lp-aura", { scale: [1, 1.14], opacity: [0.45, 0.85], duration: 5200, ease: "inOutSine", loop: true, alternate: true });
   lpSettle();
 }
-function updateLanding() {
-  var L = $("landing"), W = document.querySelector(".wrap");
+export function updateLanding() {
+  var L = $("landing"), W = document.querySelector<HTMLElement>(".wrap");
   if (!L || !W || !authReady || !loaded) return;
   var show = !sbUser && !trades.length && !landingDismissed;
   L.hidden = !show;
@@ -102,7 +106,7 @@ function openSignup() {
   $("acct-btn").click();
   setTimeout(function () { $("acct-email-in").focus(); }, 60);
 }
-function initLanding() {
+export function initLanding() {
   ["lp-signup", "lp-signin", "lp-signin-top"].forEach(function (id) { $(id).addEventListener("click", openSignup); });
   ["lp-try"].forEach(function (id) {
     $(id).addEventListener("click", function () {
@@ -114,3 +118,5 @@ function initLanding() {
   });
   setTimeout(function () { authReady = true; updateLanding(); }, 2000);
 }
+
+export function __set_authReady(value: any) { authReady = value; return value; }

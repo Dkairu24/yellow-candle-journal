@@ -1,6 +1,22 @@
-"use strict";
 /* The Yellow Candle journal: Start the app.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { initCalendarUI } from "./calendar";
+import { initCardUI } from "./cards";
+import { initCheckUI } from "./checklist";
+import { $, __set_loaded, __set_trades, editingId, initUnitUI, loaded, trades } from "./core";
+import { initFilterUI } from "./filters";
+import { buildSegs, closeDrawer, onLogClick, onSubmit, openDrawer, resetForm, updatePreview } from "./form";
+import { initImportUI } from "./import";
+import { initLanding } from "./landing";
+import { renderAll } from "./log";
+import { initMotion } from "./motion";
+import { bootPublic } from "./public";
+import { initRecapUI } from "./recap";
+import { initShotUI } from "./screenshots";
+import { initShareUI } from "./share";
+import { backupJson, exportCsv, loadTrades, restoreJson, showStatus, storageOk } from "./storage";
+import { initSync } from "./sync";
 
 function boot() {
   var pubSlug = null;
@@ -8,8 +24,8 @@ function boot() {
   if (pubSlug) { bootPublic(pubSlug); return; }
   buildSegs();
   resetForm();
-  trades = loadTrades();
-  loaded = true;
+  __set_trades(loadTrades());
+  __set_loaded(true);
   if (!storageOk) showStatus("This browser is blocking saved data, so trades will be lost when you close the page. Press Backup after logging.");
   renderAll();
   $("trade-form").addEventListener("submit", onSubmit);

@@ -1,21 +1,28 @@
-"use strict";
 /* The Yellow Candle journal: Account and sync (Supabase).
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { p2 } from "./calendar";
+import { $, __set_shared, __set_trades, shared, toast, trades } from "./core";
+import { __set_authReady, authReady, updateLanding } from "./landing";
+import { renderAll, renderLog } from "./log";
+import { shotGet, shotList, shotPut } from "./screenshots";
+import { loadShared } from "./share";
+import { cleanList, persist, storageOk } from "./storage";
 
 /* ---------- account and sync (Supabase) ---------- */
-var SB_URL = "https://ehocjjfcbpchxqouipvy.supabase.co";
-var SB_KEY = "sb_publishable__5JwB7XvODt2D6da_tfGeA_mSl645mL";
+export var SB_URL = "https://ehocjjfcbpchxqouipvy.supabase.co";
+export var SB_KEY = "sb_publishable__5JwB7XvODt2D6da_tfGeA_mSl645mL";
 var DEL_KEY = "yellow-candle-deleted-v1";
-var sb = null, sbUser = null, syncing = false, syncAgain = false, syncTimer = null, lastSync = 0, syncMsg = "";
-var quietPersist = false;
+export var sb = null, sbUser = null, syncing = false, syncAgain = false, syncTimer = null, lastSync = 0, syncMsg = "";
+export var quietPersist = false;
 function loadDeleted() {
   try {
     var o = JSON.parse(window.localStorage.getItem(DEL_KEY) || "{}");
     return o && typeof o === "object" ? o : {};
   } catch (e) { return {}; }
 }
-var deleted = loadDeleted();
-function saveDeleted() {
+export var deleted = loadDeleted();
+export function saveDeleted() {
   try { window.localStorage.setItem(DEL_KEY, JSON.stringify(deleted)); } catch (e) { /* kept for this visit */ }
 }
 function tsOf(t) { return t.updated || t.created || 0; }
@@ -37,7 +44,7 @@ function updateBanner() {
   if (bannerDefault === null) bannerDefault = st.textContent;
   st.textContent = sbUser ? "You are signed in: your trades and screenshots sync to your account." : bannerDefault;
 }
-function setSyncText(msg, state) {
+function setSyncText(msg, state?) {
   syncMsg = msg;
   if (state) syncState = state;
   var s = $("acct-status");
@@ -50,9 +57,9 @@ function setUser(u) {
   renderAcct();
   updateLanding();
   if (sbUser && sbUser.id !== was) { scheduleSync(0); loadShared(); }
-  if (!sbUser) { shared = {}; renderLog(); setSyncText("Not signed in"); }
+  if (!sbUser) { __set_shared({}); renderLog(); setSyncText("Not signed in"); }
 }
-function scheduleSync(ms) {
+export function scheduleSync(ms?) {
   if (!sb || !sbUser) return;
   clearTimeout(syncTimer);
   syncTimer = setTimeout(syncNow, ms === undefined ? 1500 : ms);
@@ -128,7 +135,7 @@ function syncNow() {
       return trades.indexOf(t) < 0;
     });
     var delChanged = Object.keys(del).length !== Object.keys(deleted).length;
-    trades = merged;
+    __set_trades(merged);
     deleted = del;
     if (changed || delChanged) {
       quietPersist = true;
@@ -197,19 +204,19 @@ function setAcctMode(m) {
   acctMsg("");
   if (reset) setTimeout(function () { $("acct-email-in").focus(); }, 30);
 }
-function acctMsg(t, bad) {
+function acctMsg(t, bad?) {
   var m = $("acct-msg");
   m.textContent = t || "";
   m.className = "note" + (bad ? " bad" : "");
 }
-function initSync() {
+export function initSync() {
   try {
     if (window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
   } catch (e) { sb = null; }
   $("acct-btn").addEventListener("click", function () { setAcctMode("signin"); renderAcct(); acctMsg(""); $("acct-modal").hidden = false; });
   $("acct-close").addEventListener("click", function () { $("acct-modal").hidden = true; });
   $("acct-modal").addEventListener("click", function (e) { if (e.target === $("acct-modal")) $("acct-modal").hidden = true; });
-  if (!sb) { setSyncText("Sync is unavailable right now. The journal still works on this device."); authReady = true; updateLanding(); return; }
+  if (!sb) { setSyncText("Sync is unavailable right now. The journal still works on this device."); __set_authReady(true); updateLanding(); return; }
   function creds() {
     var email = $("acct-email-in").value.trim(), pw = $("acct-pw").value;
     if (!email || email.indexOf("@") < 1) { acctMsg("Enter your email address.", true); return null; }
@@ -255,7 +262,7 @@ function initSync() {
       toast("Signed out. Your trades stay on this device.");
     });
   });
-  sb.auth.getSession().then(function (r) { authReady = true; setUser(r.data && r.data.session && r.data.session.user); updateLanding(); }).catch(function () { authReady = true; updateLanding(); });
+  sb.auth.getSession().then(function (r) { __set_authReady(true); setUser(r.data && r.data.session && r.data.session.user); updateLanding(); }).catch(function () { __set_authReady(true); updateLanding(); });
   sb.auth.onAuthStateChange(function (ev, session) {
     if (ev === "PASSWORD_RECOVERY") { recovering = true; acctMsg(""); renderAcct(); $("acct-modal").hidden = false; }
     setUser(session && session.user);

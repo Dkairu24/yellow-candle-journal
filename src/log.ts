@@ -1,9 +1,17 @@
-"use strict";
 /* The Yellow Candle journal: The trades list.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { renderCalendar } from "./calendar";
+import { gradeOf } from "./checklist";
+import { $, armedDelete, clear, fmtDate, fmtPx, fmtR, fmtV, h, loaded, rClass, shared, toArr, trades, vd } from "./core";
+import { populateFilters, renderFilterSummary } from "./filters";
+import { renderInsights } from "./insights";
+import { updateLanding } from "./landing";
+import { runMotion } from "./motion";
+import { renderBreakdown, renderCurve, renderDaily, renderStats, sorted } from "./stats";
 
 /* ---------- log ---------- */
-function renderLog() {
+export function renderLog() {
   var box = $("log");
   clear(box);
   var vl = vd();
@@ -92,7 +100,7 @@ function renderLog() {
   box.appendChild(wrap);
 }
 
-function renderAll() {
+export function renderAll() {
   document.body.classList.toggle("no-trades", loaded && !trades.length);
   $("empty-hero").hidden = !loaded || trades.length > 0;
   populateFilters();
