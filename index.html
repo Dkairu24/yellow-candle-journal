@@ -190,7 +190,7 @@ svg.curve, svg.daily { width: 100%; height: auto; display: block; overflow: visi
 .cal-ttl { margin-right: auto; min-width: 0; }
 .cal-ttl h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
 .cal-ttl .sub { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1.2fr); gap: 6px; }
 .cal-h { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 2px 10px 8px; }
 .cal-c { min-height: 92px; border-radius: 12px; padding: 9px 10px; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; background: rgba(255, 255, 255, 0.018); }
 .cal-c.blank { background: none; }
@@ -617,6 +617,9 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
 .usd-note { margin-left: 12px; font-size: 13px; font-weight: 500; color: var(--muted-sm); }
 .px-to { color: var(--fg) !important; font-size: 13px; }
 .px-to .to-w { color: var(--muted-sm); }
+.cal-c.wk { box-shadow: inset 0 0 0 1px var(--line); }
+.cal-c.wk .cal-r { font-size: 16px; }
+.cal-c.wk .cal-d, .cal-h.wk { color: var(--gold); }
 </style>
 </head>
 <body class="booting">
@@ -2032,26 +2035,51 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
     $("cal-sub").textContent = count
       ? count + (count === 1 ? " trade" : " trades") + ", " + fmtV(total) + ", " + up + " of " + keys.length + " trading " + (keys.length === 1 ? "day" : "days") + " up"
       : "No trades this month";
+    var weekend = keys.some(function (k) { var g = new Date(k + "T00:00:00").getDay(); return g === 0 || g === 6; });
+    var nd = weekend ? 7 : 5;
     var grid = h("div", "cal-grid");
-    WDAYS.forEach(function (w) { grid.appendChild(h("div", "cal-h", w)); });
+    grid.style.gridTemplateColumns = "repeat(" + nd + ", minmax(0, 1fr)) minmax(0, 1.2fr)";
+    WDAYS.slice(0, nd).forEach(function (w) { grid.appendChild(h("div", "cal-h", w)); });
+    grid.appendChild(h("div", "cal-h wk", "Week"));
     var first = new Date(CAL.y, CAL.m, 1);
     var lead = (first.getDay() + 6) % 7;
     var dim = new Date(CAL.y, CAL.m + 1, 0).getDate();
-    for (var i = 0; i < lead; i++) grid.appendChild(h("div", "cal-c blank"));
-    for (var d = 1; d <= dim; d++) {
-      var iso = prefix + p2(d);
-      var info = days[iso];
-      var cell = h("div", "cal-c" + (info ? (info.r > 0 ? " win" : info.r < 0 ? " loss" : " flat") : "") + (iso === todayIso() ? " today" : ""));
-      cell.appendChild(h("span", "cal-d", String(d)));
-      if (info) {
-        var rr = h("span", "cal-r num");
-        rr.appendChild(h("span", "full", fmtV(info.r)));
-        rr.appendChild(h("span", "short", dollarMode() ? moneyShort(info.r) : (info.r > 0 ? "+" : info.r < 0 ? "\u2212" : "") + Math.abs(info.r).toFixed(1)));
-        cell.appendChild(rr);
-        cell.appendChild(h("span", "cal-n", info.n + (info.n === 1 ? " trade" : " trades")));
-        cell.title = fmtDate(iso) + ": " + fmtV(info.r) + " from " + info.n + (info.n === 1 ? " trade" : " trades");
+    var weeks = Math.ceil((lead + dim) / 7), shownWeek = 0;
+    function amount(cell, v) {
+      var rr = h("span", "cal-r num");
+      rr.appendChild(h("span", "full", fmtV(v)));
+      rr.appendChild(h("span", "short", dollarMode() ? moneyShort(v) : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1)));
+      cell.appendChild(rr);
+    }
+    for (var w = 0; w < weeks; w++) {
+      var rowCells = [], wsum = 0, wn = 0, hasDay = false;
+      for (var c = 0; c < nd; c++) {
+        var d = w * 7 + c - lead + 1;
+        if (d < 1 || d > dim) { rowCells.push(h("div", "cal-c blank")); continue; }
+        hasDay = true;
+        var iso = prefix + p2(d);
+        var info = days[iso];
+        var cell = h("div", "cal-c" + (info ? (info.r > 0 ? " win" : info.r < 0 ? " loss" : " flat") : "") + (iso === todayIso() ? " today" : ""));
+        cell.appendChild(h("span", "cal-d", String(d)));
+        if (info) {
+          amount(cell, info.r);
+          cell.appendChild(h("span", "cal-n", info.n + (info.n === 1 ? " trade" : " trades")));
+          cell.title = fmtDate(iso) + ": " + fmtV(info.r) + " from " + info.n + (info.n === 1 ? " trade" : " trades");
+          wsum += info.r; wn += info.n;
+        }
+        rowCells.push(cell);
       }
-      grid.appendChild(cell);
+      if (!hasDay) continue;
+      shownWeek++;
+      rowCells.forEach(function (x) { grid.appendChild(x); });
+      var wc = h("div", "cal-c wk" + (wn ? (wsum > 0 ? " win" : wsum < 0 ? " loss" : " flat") : ""));
+      wc.appendChild(h("span", "cal-d", "W" + shownWeek));
+      if (wn) {
+        amount(wc, wsum);
+        wc.appendChild(h("span", "cal-n", wn + (wn === 1 ? " trade" : " trades")));
+        wc.title = "Week " + shownWeek + ": " + fmtV(wsum) + " from " + wn + (wn === 1 ? " trade" : " trades");
+      }
+      grid.appendChild(wc);
     }
     box.appendChild(grid);
   }
