@@ -102,14 +102,21 @@ export function renderDaily() {
   if (list.length && !W) { chartsDirty = true; return; }
   clear(box);
   if (!list.length) { box.appendChild(h("div", "empty", trades.length ? "No trades match these filters." : "Daily results appear as you log trades.")); return; }
-  var by = {};
-  list.forEach(function (t) { by[t.date] = (by[t.date] || 0) + t.r; });
+  // Each day is drawn like a candle: the body is the day's result, the wick shows how far the
+  // running total strayed above or below it during the day (only visible on days with 2+ trades).
+  var by: any = {}, hi: any = {}, lo: any = {}, run: any = {};
+  list.slice().sort(function (a, b) { return (a.created || 0) - (b.created || 0); }).forEach(function (t) {
+    run[t.date] = (run[t.date] || 0) + t.r;
+    by[t.date] = run[t.date];
+    hi[t.date] = Math.max(hi[t.date] === undefined ? 0 : hi[t.date], run[t.date]);
+    lo[t.date] = Math.min(lo[t.date] === undefined ? 0 : lo[t.date], run[t.date]);
+  });
   var dates = Object.keys(by).sort();
   var cap = Math.max(10, Math.min(60, Math.floor(W / 9)));
   if (dates.length > cap) dates = dates.slice(-cap);
   var H = window.innerWidth > 960 ? 280 : 170, pad = 4, n = dates.length;
   var top = 10, plot = H - top - 30, mxP = 0.5, mxN = 0.5;
-  dates.forEach(function (d) { if (by[d] > mxP) mxP = by[d]; if (-by[d] > mxN) mxN = -by[d]; });
+  dates.forEach(function (d) { if (hi[d] > mxP) mxP = hi[d]; if (-lo[d] > mxN) mxN = -lo[d]; });
   var k = plot / (mxP + mxN), base = Math.round(top + mxP * k);
   var slot = (W - pad * 2) / n, bw = Math.max(3, Math.min(34, slot * 0.62));
   var svg = s("svg", { "class": "daily", viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": (dollarMode() ? "Profit and loss" : "Total R") + " for each trading day" });
@@ -120,8 +127,15 @@ export function renderDaily() {
     var v = by[d];
     var hgt = Math.max(Math.abs(v) * k, 1.5);
     var x0 = pad + slot * i + (slot - bw) / 2;
-    var r = s("rect", { x: x0.toFixed(1), y: (v >= 0 ? base - hgt : base).toFixed(1), width: bw.toFixed(1), height: hgt.toFixed(1), rx: 2, style: "fill:" + (v > 0 ? "#F1CD60" : v < 0 ? "#F77B75" : "#8d8d88") });
-    r.appendChild(s("title", {}, fmtDate(d) + ": " + fmtV(Math.round(v * 100) / 100)));
+    var tone = v > 0 ? "#F1CD60" : v < 0 ? "#F77B75" : "#8d8d88";
+    var up = Math.max(v, 0), down = Math.min(v, 0);
+    if (hi[d] > up + 1e-9 || lo[d] < down - 1e-9) {
+      var wx = (x0 + bw / 2).toFixed(1);
+      svg.appendChild(s("line", { "class": "wick", x1: wx, x2: wx, y1: (base - hi[d] * k).toFixed(1), y2: (base - lo[d] * k).toFixed(1), style: "stroke:" + tone }));
+    }
+    var r = s("rect", { x: x0.toFixed(1), y: (v >= 0 ? base - hgt : base).toFixed(1), width: bw.toFixed(1), height: hgt.toFixed(1), rx: 2, style: "fill:" + tone });
+    var wickNote = hi[d] > up + 1e-9 || lo[d] < down - 1e-9 ? " (high " + fmtV(Math.round(hi[d] * 100) / 100) + ", low " + fmtV(Math.round(lo[d] * 100) / 100) + " during the day)" : "";
+    r.appendChild(s("title", {}, fmtDate(d) + ": " + fmtV(Math.round(v * 100) / 100) + wickNote));
     svg.appendChild(r);
     if (i % every === 0 && n - 1 - i >= every / 2 || i === n - 1) svg.appendChild(s("text", { x: (x0 + bw / 2).toFixed(1), y: H - 6, "text-anchor": "middle" }, String(parseInt(d.slice(8), 10))));
   });
@@ -224,6 +238,10 @@ var GROUPS = [
   ["Displacement", "disp"], ["Fresh zone", "fresh"], ["Followed rules", "rules"],
   ["Weekday", "wday"], ["Direction", "dir"], ["Execution timeframe", "tf"], ["Mindset", "mood"], ["Your tags", "tags"], ["Pair", "pair"]
 ];
+/** Groups that read best in their natural order (days, timeframes, grades) are not re-sorted. */
+var NATURAL_ORDER = { wday: true, tf: true, grade: true };
+/** A pattern needs at least this many trades before the screen trusts it. */
+var MIN_TRUSTED = 5;
 export function renderBreakdown() {
   var box = $("breakdown");
   clear(box);
@@ -232,56 +250,96 @@ export function renderBreakdown() {
     box.appendChild(h("div", "empty", trades.length ? "No trades match these filters." : "Tag your trades and the patterns appear here: which setups pay, which ones cost you."));
     return;
   }
-  var cards = h("div", "cards");
-  var made = 0;
+  // 1. gather every group's rows
+  var groups: any[] = [];
   GROUPS.forEach(function (g) {
-    var key = g[1], map = {}, order = [];
+    var key = g[1], map: any = {}, order: string[] = [];
     vlist.forEach(function (t) {
       var raw = key === "grade" ? gradeOf(t) : key === "wday" ? weekdayOf(t.date) : t[key];
       var vals = Array.isArray(raw) ? raw : [raw];
       vals.forEach(function (v) {
         if (v === undefined || v === null || v === "") return;
-        if (!map[v]) { map[v] = { n: 0, w: 0, sum: 0 }; order.push(v); }
+        if (!map[v]) { map[v] = { v: v, n: 0, w: 0, sum: 0 }; order.push(v); }
         map[v].n++; map[v].sum += t.r; if (t.r > 0) map[v].w++;
       });
     });
     if (!order.length) return;
-    var known = key === "wday" ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] : (OPTIONS[key] || []);
-    order.sort(function (a, b) {
-      var ia = known.indexOf(a), ib = known.indexOf(b);
-      if (ia === -1) ia = 99; if (ib === -1) ib = 99;
-      return ia - ib || (a < b ? -1 : 1);
+    var rows = order.map(function (v) { var m = map[v]; m.avg = m.sum / m.n; return m; });
+    if (NATURAL_ORDER[key]) {
+      var known = key === "wday" ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] : (OPTIONS[key] || []);
+      rows.sort(function (a, b) {
+        var ia = known.indexOf(a.v), ib = known.indexOf(b.v);
+        if (ia === -1) ia = 99; if (ib === -1) ib = 99;
+        return ia - ib || (a.v < b.v ? -1 : 1);
+      });
+    } else {
+      // best first, but groups with few trades sink below the ones you can trust
+      rows.sort(function (a, b) {
+        var ta = a.n >= MIN_TRUSTED ? 0 : 1, tb = b.n >= MIN_TRUSTED ? 0 : 1;
+        return ta - tb || b.avg - a.avg;
+      });
+    }
+    groups.push({ title: g[0], key: key, rows: rows });
+  });
+  if (!groups.length) {
+    box.appendChild(h("div", "empty", "None of your trades carry tags yet. Fill in the \"Why you took it\" section when you log."));
+    return;
+  }
+  // 2. the standout best and worst, only among patterns with enough trades
+  var trusted: any[] = [];
+  groups.forEach(function (g) { g.rows.forEach(function (r) { if (r.n >= MIN_TRUSTED) trusted.push({ g: g, r: r }); }); });
+  var best: any = null, worst: any = null;
+  if (trusted.length >= 3) {
+    trusted.forEach(function (x) {
+      if (x.r.avg > 0 && (!best || x.r.avg > best.r.avg)) best = x;
+      if (x.r.avg < 0 && (!worst || x.r.avg < worst.r.avg)) worst = x;
     });
+  }
+  function pick(x: any, label: string, tone: string) {
+    var c = h("div", "pat-pick " + tone);
+    c.appendChild(h("div", "pat-lab", label));
+    c.appendChild(h("div", "pat-name", x.g.title + ": " + x.r.v));
+    c.appendChild(h("div", "pat-fig num " + rClass(x.r.avg), fmtV(x.r.avg) + (dollarMode() ? " per trade" : " average")));
+    c.appendChild(h("div", "pat-sub", x.r.n + " trades, " + Math.round(x.r.w / x.r.n * 100) + "% won"));
+    return c;
+  }
+  if (best || worst) {
+    var strip = h("div", "pat-sum");
+    if (best) strip.appendChild(pick(best, "Your strongest pattern", "good"));
+    if (worst) strip.appendChild(pick(worst, "Your costliest pattern", "bad"));
+    box.appendChild(strip);
+  }
+  // 3. the cards
+  var cards = h("div", "cards");
+  groups.forEach(function (g) {
     var maxAbs = 0.01;
-    order.forEach(function (v) { maxAbs = Math.max(maxAbs, Math.abs(map[v].sum / map[v].n)); });
+    g.rows.forEach(function (m) { maxAbs = Math.max(maxAbs, Math.abs(m.avg)); });
     var card = h("div", "bcard");
     var hd = h("div", "bhead");
-    hd.appendChild(h("h3", "", g[0]));
+    hd.appendChild(h("h3", "", g.title));
     hd.appendChild(h("span", "col", dollarMode() ? "Avg" : "Avg R"));
     hd.appendChild(h("span", "col", "Win"));
     hd.appendChild(h("span", "col", "Trades"));
     card.appendChild(hd);
-    order.forEach(function (v) {
-      var m = map[v], avg = m.sum / m.n;
-      var row = h("div", "brow");
-      row.appendChild(h("div", "nm", v));
+    g.rows.forEach(function (m) {
+      var thin = m.n < MIN_TRUSTED;
+      var row = h("div", "brow" + (thin ? " thin" : "") + (best && best.r === m ? " is-best" : "") + (worst && worst.r === m ? " is-worst" : ""));
+      var nm = h("div", "nm", m.v);
+      if (best && best.r === m) nm.appendChild(h("span", "flag good", "Best"));
+      if (worst && worst.r === m) nm.appendChild(h("span", "flag bad", "Costly"));
+      row.appendChild(nm);
       var bar = h("div", "bar");
-      var fill = h("i", avg >= 0 ? "p" : "n");
-      fill.style.width = Math.min(50, Math.abs(avg) / maxAbs * 50) + "%";
+      var fill = h("i", m.avg >= 0 ? "p" : "n");
+      fill.style.width = Math.min(50, Math.abs(m.avg) / maxAbs * 50) + "%";
       bar.appendChild(fill);
       row.appendChild(bar);
-      row.appendChild(h("div", "avg num " + rClass(avg), fmtV(avg)));
+      row.appendChild(h("div", "avg num " + rClass(m.avg), fmtV(m.avg)));
       row.appendChild(h("div", "wr num", Math.round(m.w / m.n * 100) + "%"));
       row.appendChild(h("div", "cnt num", String(m.n)));
       card.appendChild(row);
     });
     cards.appendChild(card);
-    made++;
   });
-  if (!made) {
-    box.appendChild(h("div", "empty", "None of your trades carry tags yet. Fill in the \"Why you took it\" section when you log."));
-  } else {
-    box.appendChild(cards);
-    box.appendChild(h("div", "note", "Bars show average " + (dollarMode() ? "profit or loss" : "R") + " per trade: gold made money, red lost. A trade tagged with both BOS and CHOCH counts in each row."));
-  }
+  box.appendChild(cards);
+  box.appendChild(h("div", "note", "Bars show average " + (dollarMode() ? "profit or loss" : "R") + " per trade: gold made money, red lost. Faded rows have fewer than " + MIN_TRUSTED + " trades, which is too few to trust. A trade tagged with both BOS and CHOCH counts in each row."));
 }
