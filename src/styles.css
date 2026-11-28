@@ -686,15 +686,31 @@ td.r .sub-line { font-weight: 400; margin-top: 0; }
 .empty-steps .acct-link { align-self: flex-start; font-size: 13px; margin-top: 2px; }
 @media (max-width: 720px) { .empty-steps { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
 
-/* ---------- footer (kept minimal) ---------- */
-.site-foot { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); }
-.sf-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.site-foot .brand-name { font-size: 16px; }
-.site-foot .banner { text-align: left; margin-top: 16px; font-size: 13px; line-height: 1.55; }
-.sf-risk { margin: 10px 0 0; max-width: 72ch; color: var(--muted); font-size: 13px; line-height: 1.65; }
+/* ---------- footer ---------- */
+.site-foot { margin-top: 64px; padding-top: 44px; border-top: 1px solid var(--line); }
+.sf-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) repeat(2, minmax(0, 1fr)); gap: 36px 56px; }
+.sf-brand .brand { display: inline-flex; }
+.sf-tag { margin: 14px 0 0; max-width: 36ch; color: var(--fg); font-size: 14px; line-height: 1.6; }
+.site-foot .banner { text-align: left; margin-top: 14px; font-size: 13px; line-height: 1.55; max-width: 40ch; }
+.sf-col h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: var(--fg); }
+.sf-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.sf-col a, .sf-col button { display: inline-block; padding: 6px 0; color: #D6D2C4; font: inherit; font-size: 14px; text-decoration: none; background: none; border: 0; cursor: pointer; text-align: left; border-radius: 6px; transition: color 0.15s ease; }
+.sf-col a:hover, .sf-col button:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 4px; }
+.sf-base { margin-top: 40px; padding: 22px 0 8px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px 40px; flex-wrap: wrap; }
+.sf-risk { margin: 0; max-width: 72ch; color: var(--muted); font-size: 13px; line-height: 1.65; }
 .sf-risk strong { color: var(--fg); font-weight: 600; }
-.sf-copy { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
-#sf-top { display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; color: var(--fg); font: inherit; font-size: 13px; background: none; border: 0; cursor: pointer; border-radius: 6px; white-space: nowrap; }
+.sf-meta { display: flex; align-items: center; gap: 20px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+#sf-top { display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; color: var(--fg); font: inherit; font-size: 13px; background: none; border: 0; cursor: pointer; border-radius: 6px; }
 #sf-top:hover { text-decoration: underline; text-underline-offset: 4px; }
 .site-foot a:focus-visible, .site-foot button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
-@media (max-width: 720px) { .site-foot { margin-top: 40px; } }
+@media (max-width: 960px) { .sf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sf-brand { grid-column: 1 / -1; } }
+@media (max-width: 720px) {
+  .site-foot { margin-top: 48px; padding-top: 32px; }
+  .sf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }
+  .sf-brand { grid-column: 1 / -1; }
+  .sf-col[aria-label="Journal"] { display: none; } /* the tab bar already has these */
+  .sf-col a, .sf-col button { padding: 9px 0; }
+  .sf-base { flex-direction: column; gap: 14px; }
+  .sf-meta { justify-content: space-between; width: 100%; }
+}
+@media (max-width: 720px) { .sf-col[aria-label="Your data"] { grid-column: 1 / -1; } .sf-col[aria-label="Your data"] ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; } }

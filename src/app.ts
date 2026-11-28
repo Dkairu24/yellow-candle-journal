@@ -18,12 +18,17 @@ import { initShareUI } from "./share";
 import { backupJson, exportCsv, loadTrades, restoreJson, showStatus, storageOk } from "./storage";
 import { initSync } from "./sync";
 
-/** Footer: keeps the year current and scrolls to the top. */
+/** Footer: its buttons press the matching buttons in the header menu, and the year stays current. */
 function initFooter() {
   var yr = $("sf-year");
   if (yr) yr.textContent = String(new Date().getFullYear());
-  var top = $("sf-top");
-  if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
+  var f = $("site-foot");
+  if (!f) return;
+  f.addEventListener("click", function (e: any) {
+    var b = e.target.closest ? e.target.closest("[data-click]") : null;
+    if (b) { var t = $(b.getAttribute("data-click")); if (t) t.click(); return; }
+    if (e.target.closest && e.target.closest("#sf-top")) window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 }
 function boot() {
   var pubSlug = null;
