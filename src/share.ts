@@ -1,6 +1,10 @@
-"use strict";
 /* The Yellow Candle journal: Public sharing (opt in, per trade).
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, __set_shared, clear, h, shared, toast, trades, usd } from "./core";
+import { renderLog } from "./log";
+import { MAX_SHOTS, shotGet, shotList } from "./screenshots";
+import { sb, sbUser } from "./sync";
 
 /* ---------- public sharing (opt in, per trade) ---------- */
 var SHARE_FIELDS = ["date", "pair", "dir", "tf", "r", "entry", "stop", "exit", "target", "plan", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "mood", "tags", "link", "notes", "chkS", "chkN", "lots"];
@@ -12,17 +16,17 @@ function newSlug() {
   return out;
 }
 function shareUrl(slug) { return location.origin + location.pathname + "?t=" + slug; }
-function loadShared() {
+export function loadShared() {
   if (!sb || !sbUser) return Promise.resolve();
   return sb.from("shared_trades").select("trade_id,slug").then(function (r) {
     if (r.error) return;
-    shared = {};
+    __set_shared({});
     (r.data || []).forEach(function (x) { shared[x.trade_id] = x.slug; });
     renderLog();
   });
 }
 function closeShare() { $("share-modal").hidden = true; }
-function openShare(id) {
+export function openShare(id) {
   var t = trades.filter(function (x) { return x.id === id; })[0];
   if (!t) return;
   var body = $("share-body");
@@ -35,7 +39,7 @@ function openShare(id) {
     body.appendChild(b);
     return;
   }
-  function draw(msg) {
+  function draw(msg?) {
     clear(body);
     var slug = shared[id];
     if (!slug) {
@@ -79,7 +83,7 @@ function shareError(e) {
 function publish(t, existing) {
   var slug = existing || newSlug();
   var uid = sbUser.id;
-  var data = {};
+  var data: any = {};
   SHARE_FIELDS.forEach(function (k) { if (t[k] !== undefined && t[k] !== null && t[k] !== "") data[k] = t[k]; });
   var uv = usd(t);
   if (uv !== null) data.usd = uv;
@@ -117,7 +121,7 @@ function unpublish(t) {
     renderLog();
   });
 }
-function initShareUI() {
+export function initShareUI() {
   $("share-close").addEventListener("click", closeShare);
   $("share-modal").addEventListener("click", function (e) { if (e.target === $("share-modal")) closeShare(); });
 }

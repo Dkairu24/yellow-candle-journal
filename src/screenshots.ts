@@ -1,12 +1,14 @@
-"use strict";
 /* The Yellow Candle journal: Trade screenshots.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, clear, editingId, h, toast, trades } from "./core";
+import { sb, sbUser } from "./sync";
 
 /* ---------- trade screenshots (kept in this browser only, never uploaded) ---------- */
 var SHOTS = [], SHOT_GONE = [];
-var shotDb = null;
-function openShotDb() {
-  return new Promise(function (resolve, reject) {
+var shotDb: any = null;
+function openShotDb(): Promise<any> {
+  return new Promise<any>(function (resolve, reject) {
     if (shotDb) { resolve(shotDb); return; }
     if (!window.indexedDB) { reject(new Error("no idb")); return; }
     var req = indexedDB.open("yellow-candle-shots", 1);
@@ -15,7 +17,7 @@ function openShotDb() {
     req.onerror = function () { reject(req.error); };
   });
 }
-function shotTx(mode, fn) {
+function shotTx(mode: string, fn: any): Promise<any> {
   return openShotDb().then(function (db) {
     return new Promise(function (resolve, reject) {
       var tx = db.transaction("shots", mode);
@@ -26,11 +28,11 @@ function shotTx(mode, fn) {
     });
   });
 }
-function shotPut(id, blob) { return shotTx("readwrite", function (s) { return s.put(blob, id); }); }
-function shotGet(id) { return shotTx("readonly", function (s) { return s.get(id); }); }
-function shotDel(id) { return shotTx("readwrite", function (s) { return s.delete(id); }); }
-function shrinkImage(file) {
-  return new Promise(function (resolve, reject) {
+export function shotPut(id, blob) { return shotTx("readwrite", function (s) { return s.put(blob, id); }); }
+export function shotGet(id) { return shotTx("readonly", function (s) { return s.get(id); }); }
+export function shotDel(id) { return shotTx("readwrite", function (s) { return s.delete(id); }); }
+function shrinkImage(file: File): Promise<Blob> {
+  return new Promise<Blob>(function (resolve, reject) {
     var url = URL.createObjectURL(file);
     var img = new Image();
     img.onload = function () {
@@ -46,13 +48,13 @@ function shrinkImage(file) {
     img.src = url;
   });
 }
-var MAX_SHOTS = 6;
-function shotList(t) {
+export var MAX_SHOTS = 6;
+export function shotList(t) {
   if (t && Array.isArray(t.shots) && t.shots.length) return t.shots.filter(function (x) { return x && x.k; });
   return t && t.shot ? [{ k: t.id, c: "" }] : [];
 }
 function newShotKey(id) { return id + "_" + Math.random().toString(36).slice(2, 8); }
-function cloudShotRemove(keys) {
+export function cloudShotRemove(keys) {
   if (!sb || !sbUser || !keys.length) return;
   sb.storage.from("shots").remove(keys.map(function (k) { return sbUser.id + "/" + k + ".jpg"; })).catch(function () {});
 }
@@ -82,13 +84,13 @@ function renderShotPreview() {
   });
   box.hidden = !SHOTS.length;
 }
-function resetShot() {
+export function resetShot() {
   SHOTS.forEach(function (it) { if (it.url) URL.revokeObjectURL(it.url); });
   SHOTS = []; SHOT_GONE = [];
   $("f-shot").value = "";
   renderShotPreview();
 }
-function loadShotForEdit(t) {
+export function loadShotForEdit(t) {
   resetShot();
   var list = shotList(t);
   if (!list.length) return;
@@ -113,7 +115,7 @@ function takeImage(file) {
     toast("Screenshot added. Save the trade to keep it.");
   }).catch(function () { toast("Could not read that image"); });
 }
-function saveShotFor(id, doc) {
+export function saveShotFor(id, doc) {
   var list = [];
   SHOTS.forEach(function (it) {
     var key = it.k || newShotKey(id);
@@ -128,7 +130,7 @@ function saveShotFor(id, doc) {
   if (list.length) { doc.shots = list; doc.shot = true; }
   else { delete doc.shots; delete doc.shot; }
 }
-function openShot(id) {
+export function openShot(id) {
   var modal = $("shot-modal"), box = $("shot-view");
   var t = trades.filter(function (x) { return x.id === id; })[0];
   clear(box);
@@ -150,13 +152,13 @@ function openShot(id) {
     if (!shown) box.appendChild(h("p", "note", "These screenshots are not stored on this device. This backup or browser does not hold them. Backups made before screenshots were added do not include them."));
   });
 }
-function initShotUI() {
+export function initShotUI() {
   $("f-shot").addEventListener("change", function (e) {
     var files = [].slice.call(e.target.files || []);
     e.target.value = "";
     files.reduce(function (p, f) { return p.then(function () { return takeImage(f); }); }, Promise.resolve());
   });
-  document.addEventListener("paste", function (e) {
+  document.addEventListener("paste", function (e: any) {
     var items = (e.clipboardData && e.clipboardData.items) || [];
     for (var i = 0; i < items.length; i++) {
       if (items[i].kind === "file" && /^image\//.test(items[i].type)) {

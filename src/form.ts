@@ -1,9 +1,19 @@
-"use strict";
 /* The Yellow Candle journal: The log-a-trade form and CSV export.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { openCard } from "./cards";
+import { CHECKLIST, CHK, __set_CHK, renderCheck } from "./checklist";
+import { $, MULTI, OPTIONS, __set_armTimer, __set_armedDelete, __set_editingId, __set_form, __set_trades, armTimer, armedDelete, editingId, fmtR, form, h, hasVal, money, rClass, riskFor, toArr, toast, todayIso, trades } from "./core";
+import { view } from "./filters";
+import { renderAll, renderLog } from "./log";
+import { cloudShotRemove, loadShotForEdit, openShot, resetShot, saveShotFor, shotDel, shotList } from "./screenshots";
+import { openShare } from "./share";
+import { sorted } from "./stats";
+import { persist } from "./storage";
+import { deleted, saveDeleted } from "./sync";
 
 /* ---------- form ---------- */
-function buildSegs() {
+export function buildSegs() {
   Object.keys(OPTIONS).forEach(function (name) {
     var el = $("seg-" + name);
     if (!el) return;
@@ -49,7 +59,7 @@ function computeR() {
   var e = num("f-entry"), sp = num("f-stop"), x = num("f-exit");
   if (e === null && sp === null && x === null && editingId) {
     var kept = trades.filter(function (t) { return t.id === editingId; })[0];
-    if (kept && (kept.entry === undefined || kept.entry === null || kept.entry === "")) return kept.r;
+    if (kept && (kept.entry === undefined || kept.entry === null || (kept.entry as any) === "")) return kept.r;
   }
   if (e === null || sp === null || x === null || !form.dir || e === sp) return null;
   var risk = Math.abs(e - sp);
@@ -64,7 +74,7 @@ function parseTags(str) {
   });
   return out;
 }
-function allTags() {
+export function allTags() {
   var m = {};
   trades.forEach(function (t) { toArr(t.tags).forEach(function (x) { m[x] = true; }); });
   return Object.keys(m).sort();
@@ -74,7 +84,7 @@ function planR(e, sp, tg, dir) {
   var move = dir === "Short" ? e - tg : tg - e;
   return move / Math.abs(e - sp);
 }
-function updatePreview() {
+export function updatePreview() {
   var r = computeR();
   var p = $("r-preview");
   p.textContent = r === null ? "-" : fmtR(Math.round(r * 100) / 100);
@@ -88,8 +98,8 @@ function updatePreview() {
   }
   p.className = "r-preview num " + (r === null ? "zero" : rClass(r));
 }
-var drawerOpen = false, drawerFocus = null;
-function openDrawer() {
+export var drawerOpen = false, drawerFocus = null;
+export function openDrawer() {
   if (drawerOpen) return;
   drawerOpen = true;
   drawerFocus = document.activeElement;
@@ -100,7 +110,7 @@ function openDrawer() {
   document.body.classList.add("drawer-open");
   setTimeout(function () { if (drawerOpen && window.innerWidth > 760) $("f-entry").focus(); }, 380);
 }
-function closeDrawer() {
+export function closeDrawer() {
   if (!drawerOpen) return;
   drawerOpen = false;
   var p = $("form-panel"), b = $("drawer-backdrop");
@@ -111,9 +121,9 @@ function closeDrawer() {
   setTimeout(function () { if (!drawerOpen) b.hidden = true; }, 320);
   if (drawerFocus && drawerFocus.focus) { try { drawerFocus.focus({ preventScroll: true }); } catch (e) { /* keep going */ } }
 }
-function resetForm() {
-  editingId = null;
-  form = { dir: "Short", tf: "5m" };
+export function resetForm() {
+  __set_editingId(null);
+  __set_form({ dir: "Short", tf: "5m" });
   $("f-date").value = todayIso();
   $("f-pair").value = "XAUUSD";
   ["f-entry", "f-stop", "f-exit", "f-lots", "f-tags", "f-link", "f-notes"].forEach(function (id) { $(id).value = ""; });
@@ -121,7 +131,7 @@ function resetForm() {
   $("save").textContent = "Save trade";
   $("cancel").hidden = true;
   $("form-error").textContent = "";
-  CHK = {};
+  __set_CHK({});
   renderCheck();
   resetShot();
   syncSegs();
@@ -130,8 +140,8 @@ function resetForm() {
 function startEdit(id) {
   var t = trades.filter(function (x) { return x.id === id; })[0];
   if (!t) return;
-  editingId = id;
-  form = {};
+  __set_editingId(id);
+  __set_form({});
   Object.keys(OPTIONS).forEach(function (k) { form[k] = MULTI[k] ? toArr(t[k]) : (t[k] || ""); });
   $("f-date").value = t.date || todayIso();
   $("f-pair").value = t.pair || "";
@@ -143,7 +153,7 @@ function startEdit(id) {
   loadShotForEdit(t);
   $("f-link").value = t.link || "";
   $("f-notes").value = t.notes || "";
-  CHK = {};
+  __set_CHK({});
   toArr(t.chk).forEach(function (id) { CHK[id] = true; });
   renderCheck();
   $("form-title").textContent = "Edit trade";
@@ -154,7 +164,7 @@ function startEdit(id) {
   updatePreview();
   openDrawer();
 }
-function onSubmit(ev) {
+export function onSubmit(ev) {
   ev.preventDefault();
   var err = $("form-error");
   err.textContent = "";
@@ -163,7 +173,7 @@ function onSubmit(ev) {
   if (!form.dir) { err.textContent = "Choose Long or Short."; return; }
   var r = computeR();
   if (r === null) { err.textContent = "Enter entry, stop and exit, or type the R result yourself."; return; }
-  var doc = {
+  var doc: any = {
     date: date,
     pair: $("f-pair").value.trim().toUpperCase() || "XAUUSD",
     dir: form.dir,
@@ -209,7 +219,7 @@ function onSubmit(ev) {
   closeDrawer();
   renderAll();
 }
-function onLogClick(ev) {
+export function onLogClick(ev) {
   var t = ev.target;
   if (!t || !t.getAttribute) return;
   var ed = t.getAttribute("data-edit");
@@ -224,9 +234,9 @@ function onLogClick(ev) {
   if (del) {
     if (armedDelete === del) {
       clearTimeout(armTimer);
-      armedDelete = null;
+      __set_armedDelete(null);
       var goneTrade = trades.filter(function (t) { return t.id === del; })[0];
-      trades = trades.filter(function (t) { return t.id !== del; });
+      __set_trades(trades.filter(function (t) { return t.id !== del; }));
       var goneKeys = shotList(goneTrade || { id: del, shot: true }).map(function (x) { return x.k; });
       goneKeys.forEach(function (k) { shotDel(k).catch(function () {}); });
       cloudShotRemove(goneKeys);
@@ -237,9 +247,10 @@ function onLogClick(ev) {
       toast("Trade deleted");
       renderAll();
     } else {
-      armedDelete = del;
+      __set_armedDelete(del);
       clearTimeout(armTimer);
-      armTimer = setTimeout(function () { armedDelete = null; renderLog(); }, 4000);
+      var armTm = setTimeout(function () { __set_armedDelete(null); renderLog(); }, 4000);
+      __set_armTimer(armTm);
       renderLog();
     }
   }
@@ -251,7 +262,7 @@ function csvCell(v) {
   var str = Array.isArray(v) ? v.join(" + ") : String(v);
   return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
 }
-function buildCsv() {
+export function buildCsv() {
   var cols = ["date", "pair", "dir", "tf", "entry", "stop", "exit", "target", "plan", "r", "htf", "poi", "sweep", "trigger", "disp", "fresh", "rules", "chkS", "chkN", "mood", "tags", "link", "notes"];
   var lines = [cols.join(",")];
   sorted(view()).forEach(function (t) { lines.push(cols.map(function (c) { return csvCell(t[c]); }).join(",")); });

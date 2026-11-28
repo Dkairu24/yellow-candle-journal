@@ -1,6 +1,9 @@
-"use strict";
 /* The Yellow Candle journal: Broker import.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, MON, clear, fmtDate, fmtPx, fmtR, h, rClass, toast, trades } from "./core";
+import { renderAll } from "./log";
+import { persist } from "./storage";
 
 /* ---------- broker import (CSV or statement HTML, read in the browser) ---------- */
 var IMP = { headers: [], data: [], map: {}, fileName: "", dealsExport: false };
@@ -29,7 +32,7 @@ function cleanH(s) { return String(s === undefined || s === null ? "" : s).toLow
 
 // MT4/MT5 reports repeat "Time" and "Price": the first is the open, the second the close
 function autoMap(headers) {
-  var map = {}, seenTime = 0, seenPrice = 0;
+  var map: any = {}, seenTime = 0, seenPrice = 0;
   headers.forEach(function (hd, i) {
     var c = cleanH(hd);
     if (c === "time" || c === "datetime" || c === "date") {
@@ -198,7 +201,7 @@ function impBuild() {
     }
     var idRaw = get("id").replace(/[^A-Za-z0-9]/g, "");
     var id = "imp-" + (idRaw || (date + "-" + sym + "-" + dir + "-" + entry + "-" + exit)).replace(/[^A-Za-z0-9._-]/g, "");
-    var trade = { id: id, date: date, pair: sym, dir: dir, tf: o.tf, entry: entry, exit: exit, imported: true, created: Date.now() };
+    var trade: any = { id: id, date: date, pair: sym, dir: dir, tf: o.tf, entry: entry, exit: exit, imported: true, created: Date.now() };
     if (stopUsable) trade.stop = stop;
     if (r !== null) trade.r = Math.round(r * 100) / 100;
     out.push({ ok: r !== null, label: label, why: why, trade: r !== null ? trade : null, usedRisk: !stopUsable && r !== null });
@@ -306,7 +309,7 @@ function closeImport() {
   $("imp-modal").hidden = true;
   document.body.style.overflow = "";
 }
-function initImportUI() {
+export function initImportUI() {
   $("broker").addEventListener("click", openImport);
   $("imp-close").addEventListener("click", closeImport);
   $("imp-modal").addEventListener("click", function (e) { if (e.target === $("imp-modal")) closeImport(); });

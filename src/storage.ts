@@ -1,19 +1,26 @@
-"use strict";
 /* The Yellow Candle journal: Storage, CSV, backup and restore.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { $, __set_trades, toArr, toast, todayIso, trades } from "./core";
+import { view } from "./filters";
+import { buildCsv } from "./form";
+import { renderAll } from "./log";
+import { shotGet, shotList, shotPut } from "./screenshots";
+import { sorted } from "./stats";
+import { quietPersist, scheduleSync } from "./sync";
 
 /* ---------- storage (this browser only) ---------- */
 var KEY = "yellow-candle-journal-v1";
-var storageOk = true;
+export var storageOk = true;
 
-function cleanList(arr) {
+export function cleanList(arr) {
   var out = [];
   if (!Array.isArray(arr)) return out;
   arr.forEach(function (t) {
     if (!t || typeof t !== "object") return;
     var r = Number(t.r);
     if (isNaN(r) || !t.date) return;
-    var c = {};
+    var c: any = {};
     for (var k in t) c[k] = t[k];
     c.r = r;
     if (c.trigger !== undefined) c.trigger = toArr(c.trigger);
@@ -22,7 +29,7 @@ function cleanList(arr) {
   });
   return out;
 }
-function loadTrades() {
+export function loadTrades() {
   try {
     var raw = window.localStorage.getItem(KEY);
     if (!raw) return [];
@@ -32,7 +39,7 @@ function loadTrades() {
     return [];
   }
 }
-function showStatus(msg) {
+export function showStatus(msg) {
   var st = $("status");
   st.textContent = msg;
   st.hidden = false;
@@ -40,7 +47,7 @@ function showStatus(msg) {
   var mn = $("main");
   if (mn && mn.firstChild !== st) mn.insertBefore(st, mn.firstChild);
 }
-function persist() {
+export function persist() {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(trades));
   } catch (e) {
@@ -62,12 +69,12 @@ function saveFile(name, mime, text) {
   document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
 }
-function exportCsv() {
+export function exportCsv() {
   if (!view().length) { toast(trades.length ? "No trades match the filters" : "Nothing to export yet"); return; }
   saveFile("yellow-candle-journal-" + todayIso() + ".csv", "text/csv", buildCsv());
   toast("CSV saved");
 }
-function backupJson() {
+export function backupJson() {
   if (!trades.length) { toast("Nothing to back up yet"); return; }
   var list = sorted();
   var withShot = list.filter(function (t) { return t.shot; });
@@ -86,14 +93,14 @@ function backupJson() {
     return shotGet(k).then(function (b) { return b ? toDataUrl(b) : ""; }).catch(function () { return ""; })
       .then(function (u) { if (u) shots[k] = u; });
   })).then(function () {
-    var doc = { app: "yellow-candle-journal", version: 2, trades: list };
+    var doc: any = { app: "yellow-candle-journal", version: 2, trades: list };
     var n = Object.keys(shots).length;
     if (n) doc.shots = shots;
     saveFile("yellow-candle-backup-" + todayIso() + ".json", "application/json", JSON.stringify(doc, null, 2));
     toast(n ? "Backup saved with " + n + (n === 1 ? " screenshot" : " screenshots") : "Backup saved");
   });
 }
-function restoreJson(file) {
+export function restoreJson(file) {
   var reader = new FileReader();
   reader.onload = function () {
     try {
@@ -103,7 +110,7 @@ function restoreJson(file) {
       var byId = {};
       trades.forEach(function (t) { byId[t.id] = t; });
       list.forEach(function (t) { byId[t.id] = t; });
-      trades = Object.keys(byId).map(function (k) { return byId[k]; });
+      __set_trades(Object.keys(byId).map(function (k) { return byId[k]; }));
       persist();
       renderAll();
       var restored = 0;

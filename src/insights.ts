@@ -1,9 +1,14 @@
-"use strict";
 /* The Yellow Candle journal: Discipline insights.
-   Plain script, no build step. Files share one global scope and load in the order listed in index.html. */
+   An ES module: it imports what it needs from the other files. */
+
+import { weekdayOf } from "./calendar";
+import { gradeOf } from "./checklist";
+import { $, clear, fmtR, h, trades } from "./core";
+import { view } from "./filters";
+import { sorted } from "./stats";
 
 /* ---------- discipline insights (plain-language warnings from your own trades) ---------- */
-function sumR(l) { return l.reduce(function (a, t) { return a + t.r; }, 0); }
+export function sumR(l) { return l.reduce(function (a, t) { return a + t.r; }, 0); }
 function avgR(l) { return l.length ? sumR(l) / l.length : 0; }
 function buildInsights(list) {
   var out = [];
@@ -71,7 +76,7 @@ function buildInsights(list) {
   out.sort(function (a, b) { return rank[a.tone] - rank[b.tone]; });
   return out;
 }
-function renderInsights() {
+export function renderInsights() {
   var box = $("insights");
   clear(box);
   var list = view();
