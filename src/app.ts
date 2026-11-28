@@ -18,12 +18,25 @@ import { initShareUI } from "./share";
 import { backupJson, exportCsv, loadTrades, restoreJson, showStatus, storageOk } from "./storage";
 import { initSync } from "./sync";
 
+/** Footer: its buttons press the matching buttons in the header menu, and the year stays current. */
+function initFooter() {
+  var yr = $("sf-year");
+  if (yr) yr.textContent = String(new Date().getFullYear());
+  var f = $("site-foot");
+  if (!f) return;
+  f.addEventListener("click", function (e: any) {
+    var b = e.target.closest ? e.target.closest("[data-click]") : null;
+    if (b) { var t = $(b.getAttribute("data-click")); if (t) t.click(); return; }
+    if (e.target.closest && e.target.closest("#sf-top")) window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
 function boot() {
   var pubSlug = null;
   try { pubSlug = new URLSearchParams(location.search).get("t"); } catch (e) { pubSlug = null; }
   if (pubSlug) { bootPublic(pubSlug); return; }
   buildSegs();
   resetForm();
+  initFooter();
   __set_trades(loadTrades());
   __set_loaded(true);
   if (!storageOk) showStatus("This browser is blocking saved data, so trades will be lost when you close the page. Press Backup after logging.");
